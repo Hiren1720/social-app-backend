@@ -15,6 +15,10 @@ const Post = new mongoose.Schema({
         type: String,
         required: true
     },
+    device:{
+        type: String,
+        // required: true
+    },
     createdBy: {
         type: mongoose.Types.ObjectId,
         required: true,
