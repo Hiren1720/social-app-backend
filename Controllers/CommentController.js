@@ -1,6 +1,6 @@
 const Comment = require("../Models/Comment");
 const Post = require("../Models/Post");
-const User = require("../Models/User");
+const mongoose = require("mongoose");
 
 module.exports.createCommentOnPost = async (req, res) => {
     try {
@@ -21,14 +21,31 @@ module.exports.createCommentOnPost = async (req, res) => {
 };
 module.exports.getCommentsById = async (req, res) => {
     try {
-        let comments = await Comment.find({postId:req.params.id}).sort({createdAt:-1});
+        let comments = await Comment.aggregate([
+            {$match:{postId:mongoose.Types.ObjectId(req.params.id) }},
+            {
+                $lookup: {
+                    from: 'users',
+                    localField: 'createdBy',
+                    foreignField: '_id',
+                    as: 'author_info',
+                },
+            },
+            {
+                $project: {
+                    author_info:{
+                        userName:1,
+                        name:1,
+                    },
+                    content:1,
+                    createdBy:1,
+                    likes:1,
+                    postId:1,
+                }
+            }
+        ])
         if(comments && comments.length){
-            let result = comments.map(async (ele)=>{
-                let user = await User.findOne({_id:ele?.createdBy});
-                ele.user = user
-                return ele;
-            });
-            res.status(200).send({success: true, msg: "", data: await Promise.all(result)});
+            res.status(200).send({success: true, msg: "", data: comments});
         }
         else{
             res.status(400).send({success: false, msg: "", data: null});
@@ -37,19 +54,4 @@ module.exports.getCommentsById = async (req, res) => {
         res.status(400).send({success: false, msg: "", error: ex});
     }
 };
-// module.exports.getAllLikes = async (req, res) => {
-//     try {
-//         let users = await User.find({
-//             '_id': { $in: req?.body}
-//         });
-//         if(users && users.length){
-//             res.status(200).send({success: true, msg: "", data: users});
-//         }
-//         else{
-//             res.status(400).send({success: false, msg: "", data: null});
-//         }
-//     } catch (ex) {
-//         res.status(400).send({success: false, msg: "", error: ex});
-//     }
-// };
 

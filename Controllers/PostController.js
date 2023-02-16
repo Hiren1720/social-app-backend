@@ -8,7 +8,7 @@ module.exports.createPost = async (req, res) => {
             if (error) {
                 res.status(400).send({success: false, msg: "Request Failed", data: error});
             } else {
-                res.status(201).send({success: true, msg: "Post Created", data: 'document'});
+                res.status(201).send({success: true, msg: "Post Created", data: document});
             }
         });
     } catch (ex) {
@@ -39,9 +39,10 @@ module.exports.getAllPost = async (req, res) => {
                     comments:1,
                     title:1,
                     hashTags:1,
+                    device:1,
                 }
-            }
-        ])
+            },
+        ]).sort({createdAt:-1})
         if(post && post.length){
             res.status(200).send({success: true, msg: "", data: post});
         }

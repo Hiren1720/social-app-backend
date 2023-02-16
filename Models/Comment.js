@@ -6,23 +6,21 @@ const Comment = new mongoose.Schema({
         required: true,
     },
     postId:{
-        type: String,
+        type: mongoose.Types.ObjectId,
     },
     replyId:{
-        type: String,
+        type: mongoose.Types.ObjectId,
     },
     createdBy: {
-        type: String,
+        type: mongoose.Types.ObjectId,
         required: true,
-    },
-    user:{
-      type: Object
     },
     likes: {
         type: Array,
     },
 },{
     timestamps: true,
+    versionKey:false
 });
 
 module.exports = mongoose.model("comments", Comment);
