@@ -36,10 +36,8 @@ mongoose.connect(process.env.MONGO_DB_URL, {
 
 
 let server = http.createServer(app);
-server.listen(port, () => {
-    console.log(`server is working on http://localhost:${port}`)
-})
-
+const sockets = {};
+app.set('sockets', sockets)
 app.use("/api/user", UserRoutes);
 app.use("/api/request", RequestRoutes);
 app.use("/api/follower", FollowersRoute);
@@ -47,8 +45,9 @@ app.use("/api/post", PostRoutes);
 app.use("/api/admin", AdminRoutes);
 app.use("/api/comment", CommentRoutes);
 
-const io = socket(server);
+const io = socket(server,{ origins: '*:*' });
 io.on('connection',(socket)=>{
+
     socket.on('joinUserId',(userId)=>{
         socket.join(userId);
     })
@@ -61,8 +60,15 @@ io.on('connection',(socket)=>{
                 socket.broadcast.to(data?.id).emit("message", {
                     text: `${data?.userName} Commented on your post`,
                 });
+                socket.emit("messageFrom", {
+                    text: 'Commented'
+                });
             }
         });
     })
+})
+
+server.listen(port, () => {
+    console.log(`server is working on http://localhost:${port}`)
 })
 

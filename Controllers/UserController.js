@@ -1,18 +1,20 @@
 const User = require("../Models/User");
 const jwt = require('jsonwebtoken');
 const {to_Encrypt, to_Decrypt} = require("../Utils/encryptDecrypt");
+const {generateTokens,verifyRefreshToken} = require('../Utils/generateTokens');
 require("dotenv").config();
 const secret_key = process.env.SECRET_KEY;
 
 module.exports.GetAll = async (req, res) => {
     try {
-        let {user_id} = req.user;
-        const users = await User.find({_id:{$nin: user_id}})
+        let {page,searchValue,pageSize} = req?.query;
+        const total = await User.find();
+        const users = await User.find({userName: { "$regex": searchValue, "$options": "i" }}).limit(pageSize).skip(pageSize * page);
         if(users && users.length){
-            res.status(200).send({success: false,msg:"fetch successfully",data:users});
+            res.status(200).send({success: true,msg:"fetch successfully",data:users,total:total});
         }
         else {
-            res.status(404).send({success: false,msg:"users not found",data:users});
+            res.status(404).send({success: false,msg:"users not found",data:[],total:null});
         }
     } catch (ex) {
         res.send(ex)
@@ -22,18 +24,12 @@ module.exports.GetAll = async (req, res) => {
 module.exports.Login = async (req, res) => {
     try {
         const {email, password} = req.body;
-        const p_user = await User.findOne({email: email});
-        if (p_user) {
-            if (to_Decrypt(p_user.password) === password) {
-                const token = jwt.sign(
-                    { user_id: p_user._id, ...p_user},
-                    secret_key,
-                    {
-                        expiresIn: "2h",
-                    }
-                );
-                await User.findOneAndUpdate({_id:p_user._id}, {status: true});
-                res.status(200).send({success: true,token:token});
+        const user = await User.findOne({email: email}).lean();
+        if (user) {
+            if (to_Decrypt(user.password) === password) {
+                const tokens = await generateTokens(user)
+                await User.findOneAndUpdate({_id:user._id}, {status: true});
+                res.status(200).send({success: true,token:tokens});
             } else {
                 res.status(404).send({error: "password can't match"});
             }
@@ -86,15 +82,6 @@ module.exports.getById = async (req, res) => {
         else {
             res.status(404).send({success: false,msg:"User Not Found",data:null});
         }
-        //     .select([
-        //     "email",
-        //     "name",
-        //     "profile",
-        //     "_id",
-        //     "contact",
-        //     "gender",
-        //     "hobby"
-        // ]);
     } catch (ex) {
         res.send(ex);
     }
@@ -137,3 +124,21 @@ module.exports.Delete = async (req, res) => {
         res.send(ex);
     }
 };
+module.exports.generateAccessToken = async (req,res) => {
+    verifyRefreshToken(req.body.refreshToken)
+        .then(async ({ tokenDetails }) => {
+            const user = await User.findById({_id: tokenDetails.user_id});
+            const payload = { user_id: user._id,...user };
+            const accessToken = jwt.sign(
+                payload,
+                secret_key,
+                { expiresIn: "1d" }
+            );
+            res.status(200).json({
+                success: true,
+                token: {accessToken,refreshToken:req.body.refreshToken},
+                message: "Access token created successfully",
+            });
+        })
+        .catch((err) => res.status(400).json(err));
+}
