@@ -19,7 +19,7 @@ module.exports.getRequest = async (req, res) => {
     try {
         let {type} = req?.params;
         if(type === 'user'){
-            let requests = await Request.find({toUserId:{$in: req.user.user_id},status:{$nin:'accepted'}});
+            let requests = await Request.find({toUserId:{$in: req.user._id},status:{$nin:'accepted'}});
             let result = requests.map(async (ele)=> {
                 let user = await User.findOne({_id:ele?.fromUserId})
                 return {
