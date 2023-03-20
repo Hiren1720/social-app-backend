@@ -57,7 +57,7 @@ module.exports.getAllLikes = async (req, res) => {
     try {
         let users = await User.find({
             '_id': { $in: req?.body}
-        });
+        }).lean();
         if(users && users.length){
             res.status(200).send({success: true, msg: "", data: users});
         }
@@ -94,13 +94,13 @@ module.exports.getAllLikes = async (req, res) => {
 module.exports.postLike = async (req, res) => {
     try {
         let {postId,likeBy} = req.body;
-        let post = await Post.findOne({_id: postId});
+        let post = await Post.findOne({_id: postId}).lean();
         if(post.likes.includes(likeBy)){
-            await Post.findOneAndUpdate({_id:postId}, { $pull: { "likes": likeBy } });
+            await Post.findOneAndUpdate({_id:postId}, { $pull: { "likes": likeBy } }).lean();
             res.status(200).send({success: true, msg: "Disliked", data: 'requestUpdate'});
         }
         else{
-            await Post.findOneAndUpdate({_id:postId}, { $push: { "likes": likeBy } });
+            await Post.findOneAndUpdate({_id:postId}, { $push: { "likes": likeBy } }).lean();
             res.status(200).send({success: true, msg: "Liked", data: 'requestUpdate'});
         }
     } catch (ex) {

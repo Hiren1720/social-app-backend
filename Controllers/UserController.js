@@ -1,5 +1,6 @@
 const User = require("../Models/User");
 const jwt = require('jsonwebtoken');
+const nodemailer = require("nodemailer");
 const {to_Encrypt, to_Decrypt} = require("../Utils/encryptDecrypt");
 const {generateTokens,verifyRefreshToken} = require('../Utils/generateTokens');
 require("dotenv").config();
@@ -8,8 +9,8 @@ const secret_key = process.env.SECRET_KEY;
 module.exports.GetAll = async (req, res) => {
     try {
         let {page,searchValue,pageSize} = req?.query;
-        const total = await User.find();
-        const users = await User.find({userName: { "$regex": searchValue, "$options": "i" }}).limit(pageSize).skip(pageSize * page);
+        const total = await User.find().lean();
+        const users = await User.find({userName: { "$regex": searchValue, "$options": "i" }}).limit(pageSize).skip(pageSize * page).lean();
         if(users && users.length){
             res.status(200).send({success: true,msg:"fetch successfully",data:users,total:total});
         }
@@ -29,6 +30,29 @@ module.exports.Login = async (req, res) => {
             if (to_Decrypt(user.password) === password) {
                 const tokens = await generateTokens(user)
                 await User.findOneAndUpdate({_id:user._id}, {status: true});
+
+                // create reusable transporter object using the default SMTP transport
+                // let transporter = nodemailer.createTransport({
+                //     service: "gmail",
+                //     host: "smtp.gmail.com",
+                //     port: 587,
+                //     secure: true,
+                //     auth: {
+                //         user: process.env.USER_EMAIL,
+                //         pass: process.env.USER_PASS
+                //     }
+                // });
+                //
+                // // send mail with defined transport object
+                // let info = await transporter.sendMail({
+                //     from: process.env.USER_EMAIL, // sender address
+                //     to: user?.email, // list of receivers
+                //     subject: "Login Attempt!", // Subject line
+                //     text: "Successfully Login", // plain text body
+                //     html: "", // html bodys
+                // });
+                // console.log("Message sent: %s", info);
+                // console.log("Preview URL: %s", nodemailer.getTestMessageUrl(info));
                 res.status(200).send({success: true,token:tokens});
             } else {
                 res.status(404).send({error: "password can't match"});
@@ -52,7 +76,7 @@ module.exports.LogOut = async (req, res) => {
 module.exports.Register = async (req, res) => {
     try {
         const { email,password} = req.body;
-        const user = await User.findOne({ email });
+        const user = await User.findOne({ email }).lean();
         if (user){
             return res.json({ msg: "User already exists", status: false });
         }else{
@@ -75,7 +99,7 @@ module.exports.Register = async (req, res) => {
 
 module.exports.getById = async (req, res) => {
     try {
-        const user = await User.find({ _id:  req.params.id  });
+        const user = await User.find({ _id:  req.params.id  }).lean();
         if(user && user.length){
             res.status(200).send({success: true,msg:"User Found",data:user[0]});
         }

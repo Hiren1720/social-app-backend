@@ -2,11 +2,11 @@ const mongoose = require("mongoose");
 
 const Request = new mongoose.Schema({
     fromUserId: {
-        type: String,
+        type: mongoose.Types.ObjectId,
         required: true,
     },
     toUserId:{
-        type: String,
+        type: mongoose.Types.ObjectId,
         required: true
     },
     status:{
