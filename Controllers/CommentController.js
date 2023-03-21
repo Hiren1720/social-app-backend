@@ -10,7 +10,7 @@ module.exports.createCommentOnPost = async (req, res) => {
                 res.status(400).send({success: false, msg: "Request Failed", data: error});
             } else {
                 if(document?.postId){
-                    await Post.findOneAndUpdate({_id:document?.postId}, { $push: { "comments": document?._id } });
+                    await Post.findOneAndUpdate({_id:document?.postId}, { $push: { "comments": document?._id } }).lean();
                 }
                 res.status(201).send({success: true, msg: "Comment Added", data: document});
             }
