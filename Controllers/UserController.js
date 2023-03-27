@@ -3,11 +3,10 @@ const jwt = require('jsonwebtoken');
 const fs = require("fs");
 const {to_Encrypt, to_Decrypt} = require("../Utils/encryptDecrypt");
 const {generateTokens, verifyRefreshToken} = require('../Utils/generateTokens');
-const {minutesDiff, transporter} = require('../Utils/helper');
+const {minutesDiff, SendMail} = require('../Utils/helper');
 const {generateOTP} = require('../Utils/generateOTP');
 require("dotenv").config();
 const secret_key = process.env.SECRET_KEY;
-const user_email = process.env.USER_EMAIL;
 
 module.exports.GetAll = async (req, res) => {
     try {
@@ -38,9 +37,8 @@ module.exports.VerifyOTP = async (req, res) => {
         let min = minutesDiff(new Date(date), new Date())
         if (verify === otp && min < 5) {
             const tokens = await generateTokens(user);
-            transporter.sendMail({
-                from: user_email,
-                to: user?.email,
+            await SendMail({
+                user,
                 subject: "Login Attempt!",
                 text: "",
                 html: `<div style="font-family: Helvetica,Arial,sans-serif;min-width:1000px;overflow:auto;line-height:2">
@@ -72,9 +70,8 @@ module.exports.Login = async (req, res) => {
             if (to_Decrypt(user.password) === password) {
                 let otp = generateOTP();
                 fs.writeFileSync('Utils/otp.txt', `${otp}|${new Date()}`);
-                await transporter.sendMail({
-                    from: user_email,
-                    to: user?.email,
+                await SendMail({
+                    user,
                     subject: "Verify your account with OTP",
                     text: "",
                     html: `<div style="font-family: Helvetica,Arial,sans-serif;min-width:1000px;overflow:auto;line-height:2">
@@ -89,7 +86,7 @@ module.exports.Login = async (req, res) => {
                                 <hr style="border:none;border-top:1px solid #eee" />
                               </div>
                             </div>`,
-                });
+                })
                 res.status(200).send({success: true, message: 'Verify OTP', type: type});
             } else {
                 res.status(404).send({error: "password can't match"});

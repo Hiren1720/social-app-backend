@@ -8,7 +8,7 @@ module.exports.minutesDiff = (date1, date2) => {
     return Math.abs(Math.round( diffMin ));
 }
 
-module.exports.transporter = nodeMailer.createTransport({
+const transporter = nodeMailer.createTransport({
     service: "gmail",
     host: "smtp.gmail.com",
     port: 587,
@@ -18,3 +18,13 @@ module.exports.transporter = nodeMailer.createTransport({
         pass: user_pass
     }
 });
+
+module.exports.SendMail = async ({user,subject,text = '',html = `<></>`}) => {
+    return await transporter.sendMail({
+        from: user_email,
+        to: user?.email,
+        subject: subject,
+        text: text,
+        html: html,
+    });
+}
