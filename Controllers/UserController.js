@@ -87,7 +87,7 @@ module.exports.Login = async (req, res) => {
                               </div>
                             </div>`,
                 })
-                res.status(200).send({success: true, message: 'Verify OTP', type: type});
+                res.status(200).send({success: true, message: 'Verify OTP', type: type,otp:otp});
             } else {
                 res.status(404).send({error: "password can't match"});
             }
