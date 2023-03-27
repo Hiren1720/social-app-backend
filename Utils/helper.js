@@ -1,6 +1,7 @@
 const nodeMailer = require('nodemailer');
 require('dotenv').config();
 let user_email = process.env.USER_EMAIL;
+let user_name = process.env.USER_NAME;
 let user_pass = process.env.USER_PASS;
 module.exports.minutesDiff = (date1, date2) => {
     let diffMin =(date2.getTime() - date1.getTime()) / 1000;
@@ -21,7 +22,10 @@ const transporter = nodeMailer.createTransport({
 
 module.exports.SendMail = async ({user,subject,text = '',html = `<></>`}) => {
     return await transporter.sendMail({
-        from: user_email,
+        from: {
+            name: user_name,
+            address: user_email,
+        },
         to: user?.email,
         subject: subject,
         text: text,
