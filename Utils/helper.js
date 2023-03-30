@@ -21,14 +21,22 @@ const transporter = nodeMailer.createTransport({
 });
 
 module.exports.SendMail = async ({user,subject,text = '',html = `<></>`}) => {
-    return await transporter.sendMail({
-        from: {
-            name: user_name,
-            address: user_email,
-        },
-        to: user?.email,
-        subject: subject,
-        text: text,
-        html: html,
-    });
+    return await new Promise((resolve, reject) => {
+        transporter.sendMail({
+            from: {
+                name: user_name,
+                address: user_email,
+            },
+            to: user?.email,
+            subject: subject,
+            text: text,
+            html: html,
+        },(err, info) => {
+            if (err) {
+                reject(err);
+            } else {
+                resolve(info);
+            }
+            });
+    })
 }
