@@ -11,6 +11,9 @@ const Post = new mongoose.Schema({
     hashTags:{
       type:Array
     },
+    mentions:{
+        type:Array
+    },
     title:{
         type: String,
         required: true

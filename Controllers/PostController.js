@@ -40,6 +40,7 @@ module.exports.getAllPost = async (req, res) => {
                     title:1,
                     hashTags:1,
                     device:1,
+                    mentions:1
                 }
             },
         ]).sort({createdAt:-1})
