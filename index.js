@@ -44,6 +44,7 @@ app.use("/api/follower", FollowersRoute);
 app.use("/api/post", PostRoutes);
 app.use("/api/admin", AdminRoutes);
 app.use("/api/comment", CommentRoutes);
+app.use(express.static('Photos'));
 
 const io = socket(server,{ origins: '*:*' });
 io.on('connection',(socket)=>{
