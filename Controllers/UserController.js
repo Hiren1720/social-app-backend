@@ -96,7 +96,7 @@ module.exports.Login = async (req, res) => {
             res.status(404).send({error: "user not found"});
         }
     } catch (ex) {
-
+        res.status(400).send({error:ex})
     }
 };
 module.exports.LogOut = async (req, res) => {
@@ -110,12 +110,13 @@ module.exports.LogOut = async (req, res) => {
 };
 module.exports.Register = async (req, res) => {
     try {
-        const {email, password} = req.body;
+        let data = JSON.parse(req.body?.user)
+        const {email, password} = data;
         const user = await User.findOne({email}).lean();
         if (user) {
             return res.json({msg: "User already exists", status: false});
         } else {
-            let user = new User({...req.body, password: to_Encrypt(password)})
+            let user = new User({...data, password: to_Encrypt(password),profile_url: `/Profiles/${req?.file?.filename}`})
             user.save(function (error, document) {
                 if (error) {
                     res.status(400).send({success: false, msg: "Registration failed", data: error});
