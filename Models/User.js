@@ -41,6 +41,9 @@ const User = new mongoose.Schema({
     following:{
       type:Array
     },
+    profile_url:{
+      type: String,
+    },
     state: {
         type: String,
         required: true

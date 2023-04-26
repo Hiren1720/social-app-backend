@@ -36,6 +36,7 @@ module.exports.getCommentsById = async (req, res) => {
                     author_info:{
                         userName:1,
                         name:1,
+                        profile_url: 1
                     },
                     content:1,
                     createdBy:1,
