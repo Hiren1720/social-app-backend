@@ -11,8 +11,6 @@ const AdminRoutes = require("./Routes/AdminRoutes");
 const CommentRoutes = require("./Routes/CommentRoutes");
 const Comment = require("./Models/Comment");
 const Post = require("./Models/Post");
-// var multer = require('multer');
-// var upload = multer();
 const app = express();
 require("dotenv").config();
 

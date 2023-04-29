@@ -3,7 +3,8 @@ const User = require("../Models/User");
 
 module.exports.createPost = async (req, res) => {
     try {
-        let post = new Post(req.body);
+        let postData = JSON.parse(req.body?.post);
+        let post = new Post({...postData,imageUrl: `/Posts/${req?.file?.filename}`});
         post.save(function (error, document) {
             if (error) {
                 res.status(400).send({success: false, msg: "Request Failed", data: error});
@@ -41,7 +42,8 @@ module.exports.getAllPost = async (req, res) => {
                     title:1,
                     hashTags:1,
                     device:1,
-                    mentions:1
+                    mentions:1,
+                    imageUrl:1
                 }
             },
         ]).sort({createdAt:-1})

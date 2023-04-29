@@ -1,5 +1,6 @@
 const Request = require("../Models/Requests");
 const User = require("../Models/User");
+const mongoose = require("mongoose");
 module.exports.sendRequest = async (req, res) => {
     try {
         let request = new Request({...req.body,status:'pending'})
@@ -19,16 +20,28 @@ module.exports.getRequest = async (req, res) => {
     try {
         let {type} = req?.params;
         if(type === 'user'){
-            let requests = await Request.find({toUserId:{$in: req.user._id},status:{$nin:'accepted'}});
-            let result = requests.map(async (ele)=> {
-                let user = await User.findOne({_id:ele?.fromUserId})
-                return {
-                    content:user.name + ' has requested to follow you',
-                    _id: ele?._id,
-                }
-            });
-            let final = await Promise.all(result);
-            res.status(200).send({success: true, msg: "User Requests fetch successfully", data: final});
+            let requests = await Request.aggregate([
+                { $match : {toUserId:mongoose.Types.ObjectId(req.user._id)} },
+                {
+                    $lookup:{
+                        from: 'users',
+                        localField: 'fromUserId',
+                        foreignField: '_id',
+                        as: 'author_info'
+                    }
+                },
+                {
+                    $project:{
+                        author_info:{
+                            name:1,
+                            userName:1,
+                            profile_url:1
+                        },
+                        _id:1
+                    }
+                },
+            ])
+            res.status(200).send({success: true, msg: "User Requests fetch successfully", data: requests});
         }
         else {
             let requests = await Request.find();
