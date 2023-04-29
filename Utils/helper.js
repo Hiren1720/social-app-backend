@@ -1,4 +1,5 @@
 const nodeMailer = require('nodemailer');
+const multer = require('multer');
 require('dotenv').config();
 let user_email = process.env.USER_EMAIL;
 let user_name = process.env.USER_NAME;
@@ -40,3 +41,10 @@ module.exports.SendMail = async ({user,subject,text = '',html = `<></>`}) => {
             });
     })
 }
+
+module.exports.storageEngine = (path)=> multer.diskStorage({
+    destination: "./Photos/" + path,
+    filename: (req, file, cb) => {
+        cb(null, file.originalname);
+    },
+})

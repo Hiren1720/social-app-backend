@@ -1,11 +1,6 @@
 const multer = require('multer');
-const storageEngine = multer.diskStorage({
-    destination: "./Photos/Profiles",
-    filename: (req, file, cb) => {
-        cb(null, file.originalname);
-    },
-});
-const upload = multer({ storage: storageEngine });
+const {storageEngine} = require('../Utils/helper');
+const upload = multer({ storage: storageEngine('Profiles') });
 const { GetAll,getById,Register,Login,VerifyOTP,Update,Delete,LogOut,generateAccessToken  } = require("../Controllers/UserController");
 const router = require("express").Router();
 const auth = require("../Middleware/Auth");
