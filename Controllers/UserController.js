@@ -54,7 +54,7 @@ module.exports.VerifyOTP = async (req, res) => {
                             </div>`,
             });
             fs.unlinkSync('Utils/otp.txt');
-            res.status(200).send({success: true, token: tokens});
+            res.status(200).send({success: true, token: tokens,data:user});
         } else {
             res.status(400).send({error: "Invalid OTP"});
         }
@@ -88,7 +88,7 @@ module.exports.Login = async (req, res) => {
                 //               </div>
                 //             </div>`,
                 // })
-                res.status(200).send({success: true, token:tokens});
+                res.status(200).send({success: true, token:tokens,data:user});
             } else {
                 res.status(404).send({error: "password can't match"});
             }
