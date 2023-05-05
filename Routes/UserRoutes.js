@@ -11,7 +11,7 @@ router.post("/verify-otp", VerifyOTP);
 router.get("/profile/:id",auth, getById);
 router.post("/logout",auth, LogOut);
 router.get("/userAll",auth, GetAll);
-router.post("/update", Update);
+router.post("/update",upload.single('profile'), Update);
 router.post("/refreshToken", generateAccessToken);
 router.delete("/delete/:id", Delete);
 
