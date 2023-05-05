@@ -3,12 +3,12 @@ const jwt = require('jsonwebtoken');
 const generateTokens = async (user) => {
     try {
         const accessToken = jwt.sign(
-            user,
+            {email:user?.email},
             process.env.SECRET_KEY,
             { expiresIn: "1d" }
         );
         const refreshToken = jwt.sign(
-            user,
+            {email:user?.email},
             process.env.SECRET_KEY,
             { expiresIn: "30d" }
         );
