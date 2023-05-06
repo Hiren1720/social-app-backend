@@ -144,16 +144,42 @@ module.exports.getById = async (req, res) => {
     }
 };
 
+// module.exports.Update = async (req, res) => {
+//     try {
+//         // const userId = req.body._id;
+//         // const userData = await User.findByIdAndUpdate(
+//         //     userId,
+//         //     req.body,
+//         //     {new: true}
+//         // );
+//         let user = await User.findOne({_id:req.body.payload._id});
+//         let userData = await User.findOneAndUpdate({_id:req.body.payload._id}, req.body.payload );
+//         console.log("userData",  userData, "user,", user, "req", req.body.payload)
+//         const tokens = await generateTokens(userData);
+//         if (userData) {
+//             return res.status(201).send({success: true, msg: "User Updated Successfully", data: req.body.payload, token: tokens});
+//         } else {
+//             return res.status(400).send({success: false, msg: "User Update Failed", data: null});
+//         }
+//     } catch (ex) {
+//         res.send(ex);
+//     }
+// };
+
+
 module.exports.Update = async (req, res) => {
     try {
-        const userId = req.body._id;
-        const userData = await User.findByIdAndUpdate(
-            userId,
-            req.body,
-            {new: true}
-        );
+        console.log("update", req)
+        let data = JSON.parse(req.body?.user);
+
+        if(!req?.body?.profile)
+        {
+            data.profile_url= `/Profiles/${req?.file?.filename}`
+        }
+        let userData = await User.findOneAndUpdate({_id:data._id}, data).lean();
+
         if (userData) {
-            return res.status(201).send({success: true, msg: "User Updated Successfully", data: userData});
+            return res.status(201).send({success: true, msg: "User Updated Successfully",data:data});
         } else {
             return res.status(400).send({success: false, msg: "User Update Failed", data: null});
         }
@@ -161,6 +187,7 @@ module.exports.Update = async (req, res) => {
         res.send(ex);
     }
 };
+
 
 module.exports.Delete = async (req, res) => {
     try {
