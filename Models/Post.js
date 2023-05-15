@@ -19,8 +19,7 @@ const Post = new mongoose.Schema({
         required: true
     },
     device:{
-        type: String,
-        // required: true
+        type: String
     },
     createdBy: {
         type: mongoose.Types.ObjectId,

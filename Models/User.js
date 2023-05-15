@@ -44,6 +44,8 @@ const User = new mongoose.Schema({
         type: Boolean,
     },
 },{
+    timestamps: true,
+    versionKey:false,
     toJSON: {
         transform(doc, ret) {
             delete ret.password;
