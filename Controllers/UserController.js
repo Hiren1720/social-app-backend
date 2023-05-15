@@ -64,9 +64,26 @@ module.exports.VerifyOTP = async (req, res) => {
 };
 module.exports.Login = async (req, res) => {
     try {
-        const {email, password, type} = req.body;
+        const {email, password,name, type,provider,picture,email_verified} = req.body;
         const user = await User.findOne({email: email}).lean();
-        if (user) {
+        if(provider && provider === 'google' && email_verified){
+            if(user){
+                const tokens = await generateTokens(user);
+                res.status(200).send({success: true, token:tokens,data:user});
+            }
+            else {
+                let user = new User({email:email,name:name,profile_url: picture})
+                user.save(async function (error, document) {
+                    if (error) {
+                        res.status(400).send({success: false, msg: "Login failed", data: error});
+                    } else {
+                        const tokens = await generateTokens(document);
+                        res.status(201).send({success: true, msg: "Successfully Login", tokens: tokens});
+                    }
+                });
+            }
+        }
+        else if (user && !provider) {
             if (to_Decrypt(user.password) === password) {
                 const tokens = await generateTokens(user);
                 // let otp = generateOTP();

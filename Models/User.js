@@ -7,33 +7,26 @@ const User = new mongoose.Schema({
     },
     userName:{
         type: String,
-        required: true
     },
     email: {
         type: String,
-        required: true,
         unique: true,
         max: 50,
     },
     password:{
         type:String,
-        required: true,
     },
     birthDate:{
         type: Date,
-        required: true,
     },
     gender:{
         type: String,
-        required: true,
     },
     hobby: {
         type: Array,
-        required: true,
     },
     contact:{
         type: Number,
-        required: true
     },
     followers:{
       type: Array,
@@ -46,7 +39,6 @@ const User = new mongoose.Schema({
     },
     state: {
         type: String,
-        required: true
     },
     status: {
         type: Boolean,
