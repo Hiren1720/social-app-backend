@@ -12,6 +12,9 @@ const Request = new mongoose.Schema({
     status:{
         type: String
     }
+},{
+    timestamps: true,
+    versionKey:false
 });
 
 module.exports = mongoose.model("requests", Request);

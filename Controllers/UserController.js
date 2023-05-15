@@ -1,4 +1,6 @@
 const User = require("../Models/User");
+const mongoose = require("mongoose");
+const ViewProfile = require("../Models/ViewProfile");
 const jwt = require('jsonwebtoken');
 const fs = require("fs");
 const {to_Encrypt, to_Decrypt} = require("../Utils/encryptDecrypt");
@@ -7,6 +9,7 @@ const {minutesDiff, SendMail} = require('../Utils/helper');
 const {generateOTP} = require('../Utils/generateOTP');
 require("dotenv").config();
 const secret_key = process.env.SECRET_KEY;
+const passwordResetUrl = process.env.PASSWORD_RESET_URL;
 
 module.exports.GetAll = async (req, res) => {
     try {
@@ -150,9 +153,13 @@ module.exports.Register = async (req, res) => {
 
 module.exports.getById = async (req, res) => {
     try {
-        const user = await User.find({_id: req.params.id}).lean();
-        if (user && user.length) {
-            res.status(200).send({success: true, msg: "User Found", data: user[0]});
+        const user = await User.findOne({_id: req.params.id}).lean();
+        const visitor = await ViewProfile.findOne({viewerId: req.user._id,userId:req.params.id}).lean();
+        if(!visitor && req.params.id !== req.user._id){
+            new ViewProfile({viewerId:req.user._id,userId: req.params.id}).save();
+        }
+        if (user) {
+            res.status(200).send({success: true, msg: "User Found", data: user});
         } else {
             res.status(404).send({success: false, msg: "User Not Found", data: null});
         }
@@ -161,27 +168,38 @@ module.exports.getById = async (req, res) => {
     }
 };
 
-// module.exports.Update = async (req, res) => {
-//     try {
-//         // const userId = req.body._id;
-//         // const userData = await User.findByIdAndUpdate(
-//         //     userId,
-//         //     req.body,
-//         //     {new: true}
-//         // );
-//         let user = await User.findOne({_id:req.body.payload._id});
-//         let userData = await User.findOneAndUpdate({_id:req.body.payload._id}, req.body.payload );
-//         console.log("userData",  userData, "user,", user, "req", req.body.payload)
-//         const tokens = await generateTokens(userData);
-//         if (userData) {
-//             return res.status(201).send({success: true, msg: "User Updated Successfully", data: req.body.payload, token: tokens});
-//         } else {
-//             return res.status(400).send({success: false, msg: "User Update Failed", data: null});
-//         }
-//     } catch (ex) {
-//         res.send(ex);
-//     }
-// };
+module.exports.getProfileViewers = async (req, res) => {
+    try {
+        let user = await ViewProfile.aggregate([
+            {$match:{userId:mongoose.Types.ObjectId(req.user._id)}},
+            {
+                $lookup:{
+                    from: 'users',
+                    localField: 'viewerId',
+                    foreignField: '_id',
+                    as: 'author_info'
+                }
+            },
+            {
+                $project:{
+                    author_info:{
+                        _id:1,
+                        name:1,
+                        userName:1,
+                        profile_url:1
+                    }
+                }
+            },
+        ]).sort({createdAt:-1})
+        if (user) {
+            return res.status(200).send({success: true, msg: "Success",data: user});
+        } else {
+            return res.status(400).send({success: false, msg: "Failed", data: []});
+        }
+    } catch (ex) {
+        res.send(ex);
+    }
+};
 
 
 module.exports.Update = async (req, res) => {
