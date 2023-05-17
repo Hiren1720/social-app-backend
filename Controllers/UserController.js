@@ -88,27 +88,26 @@ module.exports.Login = async (req, res) => {
         }
         else if (user && !provider) {
             if (to_Decrypt(user.password) === password) {
-                const tokens = await generateTokens(user);
-                // let otp = generateOTP();
-                // fs.writeFileSync('Utils/otp.txt', `${otp}|${new Date()}`);
-                // await SendMail({
-                //     user,
-                //     subject: "Verify your account with OTP",
-                //     text: "",
-                //     html: `<div style="font-family: Helvetica,Arial,sans-serif;min-width:1000px;overflow:auto;line-height:2">
-                //               <div style="margin:50px auto;width:70%;padding:20px 0">
-                //                 <div style="border-bottom:1px solid #eee">
-                //                   <a href="" style="font-size:1.4em;color: #00466a;text-decoration:none;font-weight:600">Social App</a>
-                //                 </div>
-                //                 <p style="font-size:1.1em">Hi,</p>
-                //                 <p>Thank you for choosing Social App. Use the following OTP to complete your Sign Up procedures. OTP is valid for 5 minutes</p>
-                //                 <h2 style="background: #00466a;margin: 0 auto;width: max-content;padding: 0 10px;color: #fff;border-radius: 4px;">${otp}</h2>
-                //                 <p style="font-size:0.9em;">Regards,<br />Social App</p>
-                //                 <hr style="border:none;border-top:1px solid #eee" />
-                //               </div>
-                //             </div>`,
-                // })
-                res.status(200).send({success: true, token:tokens,data:user});
+                let otp = generateOTP();
+                fs.writeFileSync('Utils/otp.txt', `${otp}|${new Date()}`);
+                await SendMail({
+                    user,
+                    subject: "Verify your account with OTP",
+                    text: "",
+                    html: `<div style="font-family: Helvetica,Arial,sans-serif;min-width:1000px;overflow:auto;line-height:2">
+                              <div style="margin:50px auto;width:70%;padding:20px 0">
+                                <div style="border-bottom:1px solid #eee">
+                                  <a href="" style="font-size:1.4em;color: #00466a;text-decoration:none;font-weight:600">Social App</a>
+                                </div>
+                                <p style="font-size:1.1em">Hi,</p>
+                                <p>Thank you for choosing Social App. Use the following OTP to complete your Sign Up procedures. OTP is valid for 5 minutes</p>
+                                <h2 style="background: #00466a;margin: 0 auto;width: max-content;padding: 0 10px;color: #fff;border-radius: 4px;">${otp}</h2>
+                                <p style="font-size:0.9em;">Regards,<br />Social App</p>
+                                <hr style="border:none;border-top:1px solid #eee" />
+                              </div>
+                            </div>`,
+                })
+                res.status(200).send({success: true,  message: 'Verify OTP', type: type});
             } else {
                 res.status(404).send({error: "password can't match"});
             }
@@ -223,11 +222,80 @@ module.exports.Update = async (req, res) => {
     }
 };
 
+module.exports.forgotPassword = async (req, res) => {
+    try {
+        let user = await User.findOne({email:req.body.email})
+        let info = await SendMail({
+            user:{email:req.body.email},
+            subject: "Social app account forgot password",
+            text: "",
+            html: `<div style="font-family: Helvetica,Arial,sans-serif;min-width:1000px;overflow:auto;line-height:2">
+                              <div style="margin:50px auto;width:70%;padding:20px 0">
+                                <div style="border-bottom:1px solid #eee">
+                                  <a href="" style="font-size:1.4em;color: #00466a;text-decoration:none;font-weight:600">Social App</a>
+                                </div>
+                                <p style="font-size:1.1em">Hi ${user?.name},</p>
+                                <p>Sorry to hear you’re having trouble logging into Social App. We got a message that you forgot your password. If this was you, you can reset your password now.</p>
+                                <a href="${passwordResetUrl}/${user?._id}" target="_blank" style="background: #00466a;margin: 0 auto;width: max-content;padding: 10px 10px;color: #fff;border-radius: 4px;text-decoration: none">Reset your Password</a>
+                                <p style="font-size:0.9em;">Regards,<br />Social App</p>
+                                <hr style="border:none;border-top:1px solid #eee" />
+                              </div>
+                            </div>`,
+        })
+
+        if (info?.messageId) {
+            return res.status(201).send({success: true, msg: "Send Password reset link"});
+        } else {
+            return res.status(400).send({success: false, msg: "Failed", data: null});
+        }
+    } catch (ex) {
+        res.send(ex);
+    }
+};
+
+module.exports.resetPassword = async (req, res) => {
+    try {
+        let user = await User.findOneAndUpdate({_id:req.body.id},{
+            password:to_Encrypt(req.body.password)
+        },{new:true}).lean();
+        if(user){
+            let result = user?.email.indexOf("@") - 3;
+            let middleEmail = user?.email.split('@')[0].slice(3,result);
+            let final = user?.email.replace(middleEmail,'***')
+            let info = await SendMail({
+                user:{email:user.email},
+                subject: "Social app account password reset",
+                text: "",
+                html: `<div style="font-family: Helvetica,Arial,sans-serif;min-width:1000px;overflow:auto;line-height:2">
+                              <div style="margin:50px auto;width:70%;padding:20px 0">
+                                <div style="border-bottom:1px solid #eee">
+                                  <a href="" style="font-size:1.4em;color: #00466a;text-decoration:none;font-weight:600">Social App</a>
+                                </div>
+                                <p style="font-size:1.1em">Hi ${user?.name},</p>
+                                <p>Your password for the Social app account <strong>${final}</strong> was changed on <strong>${new Date().toLocaleDateString()}</strong></p>
+                                <p style="font-size:0.9em;">Regards,<br />Social App</p>
+                                <hr style="border:none;border-top:1px solid #eee" />
+                              </div>
+                            </div>`,
+            })
+            if(info?.messageId){
+                return res.status(201).send({success: true, msg: "Password reset success"});
+            }else {
+                return res.status(400).send({success: false, msg: "Something went wrong!"});
+            }
+        }else {
+            return res.status(400).send({success: false, msg: "Password reset failed",});
+        }
+    } catch (ex) {
+        res.send(ex);
+    }
+};
+
 
 module.exports.Delete = async (req, res) => {
     try {
         if (!req.params.id) {
-            return res.json({msg: "User id is required "});
+            return res.status(400).json({msg: "User id is required "});
         } else {
             let user = await User.deleteOne({_id: req.params.id})
             if (user && user?.acknowledged) {
