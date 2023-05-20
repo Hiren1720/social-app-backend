@@ -31,6 +31,7 @@ module.exports.GetAll = async (req, res) => {
     }
 };
 module.exports.VerifyOTP = async (req, res) => {
+    console.log("req", res)
     try {
         const {otp, email} = req.body;
         const user = await User.findOne({email: email}).lean();
@@ -66,22 +67,24 @@ module.exports.VerifyOTP = async (req, res) => {
     }
 };
 module.exports.Login = async (req, res) => {
+
     try {
         const {email, password,name, type,provider,picture,email_verified} = req.body;
         const user = await User.findOne({email: email}).lean();
+
         if(provider && provider === 'google' && email_verified){
             if(user){
                 const tokens = await generateTokens(user);
-                res.status(200).send({success: true, token:tokens,data:user});
+                res.status(200).send({success: true, token:tokens,data:user,provider:provider});
             }
             else {
                 let user = new User({email:email,name:name,profile_url: picture})
                 user.save(async function (error, document) {
                     if (error) {
-                        res.status(400).send({success: false, msg: "Login failed", data: error});
+                        res.status(400).send({success: false, msg: "Login failed", data: error,});
                     } else {
                         const tokens = await generateTokens(document);
-                        res.status(201).send({success: true, msg: "Successfully Login", tokens: tokens});
+                        res.status(201).send({success: true, msg: "Successfully Login", token: tokens,data:document,provider:provider});
                     }
                 });
             }
@@ -107,7 +110,7 @@ module.exports.Login = async (req, res) => {
                               </div>
                             </div>`,
                 })
-                res.status(200).send({success: true,  message: 'Verify OTP', type: type});
+                res.status(200).send({success: true,  message: 'Verify OTP'});
             } else {
                 res.status(404).send({error: "password can't match"});
             }
@@ -203,7 +206,7 @@ module.exports.getProfileViewers = async (req, res) => {
 
 module.exports.Update = async (req, res) => {
     try {
-        console.log("update", req)
+
         let data = JSON.parse(req.body?.user);
 
         if(!req?.body?.profile)
@@ -225,11 +228,12 @@ module.exports.Update = async (req, res) => {
 module.exports.forgotPassword = async (req, res) => {
     try {
         let user = await User.findOne({email:req.body.email})
-        let info = await SendMail({
-            user:{email:req.body.email},
-            subject: "Social app account forgot password",
-            text: "",
-            html: `<div style="font-family: Helvetica,Arial,sans-serif;min-width:1000px;overflow:auto;line-height:2">
+if(user){
+    let info = await SendMail({
+        user:{email:req.body.email},
+        subject: "Social app account forgot password",
+        text: "",
+        html: `<div style="font-family: Helvetica,Arial,sans-serif;min-width:1000px;overflow:auto;line-height:2">
                               <div style="margin:50px auto;width:70%;padding:20px 0">
                                 <div style="border-bottom:1px solid #eee">
                                   <a href="" style="font-size:1.4em;color: #00466a;text-decoration:none;font-weight:600">Social App</a>
@@ -241,13 +245,17 @@ module.exports.forgotPassword = async (req, res) => {
                                 <hr style="border:none;border-top:1px solid #eee" />
                               </div>
                             </div>`,
-        })
+    })
 
-        if (info?.messageId) {
-            return res.status(201).send({success: true, msg: "Send Password reset link"});
-        } else {
-            return res.status(400).send({success: false, msg: "Failed", data: null});
-        }
+    if (info?.messageId) {
+        return res.status(201).send({success: true, msg: "Send Password reset link", data:req.body.email});
+    } else {
+        return res.status(400).send({success: false, msg: "Failed", data: null});
+    }
+}
+       else{
+    res.status(404).send({error: "user not found"});
+}
     } catch (ex) {
         res.send(ex);
     }
