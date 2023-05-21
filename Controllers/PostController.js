@@ -4,7 +4,7 @@ const User = require("../Models/User");
 module.exports.createPost = async (req, res) => {
     try {
         let postData = JSON.parse(req.body?.post);
-        let post = new Post({...postData,imageUrl: `/Posts/${req?.file?.filename}`});
+        let post = new Post({...postData,imageUrl: req?.file?.filename ? `/Posts/${req?.file?.filename}`:''});
         post.save(function (error, document) {
             if (error) {
                 res.status(400).send({success: false, msg: "Request Failed", data: error});

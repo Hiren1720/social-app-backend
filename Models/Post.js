@@ -2,8 +2,7 @@ const mongoose = require("mongoose");
 
 const Post = new mongoose.Schema({
     content: {
-        type: String,
-        required: true,
+        type: String
     },
     imageUrl:{
         type: String
@@ -15,8 +14,7 @@ const Post = new mongoose.Schema({
         type:Array
     },
     title:{
-        type: String,
-        required: true
+        type: String
     },
     device:{
         type: String
