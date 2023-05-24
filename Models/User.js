@@ -34,6 +34,9 @@ const User = new mongoose.Schema({
     following:{
       type:Array
     },
+    blockedUsers:{
+        type:Array
+    },
     profile_url:{
       type: String,
     },
