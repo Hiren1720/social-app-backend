@@ -19,10 +19,10 @@ module.exports.GetAll = async (req, res) => {
             userName: {
                 "$regex": searchValue,
                 "$options": "i"
-            }
+            },blockedUsers:{$nin: req?.user?._id}
         }).limit(pageSize).skip(pageSize * page).lean();
         if (users && users.length) {
-            res.status(200).send({success: true, msg: "fetch successfully", data: users, total: total});
+            res.status(200).send({success: true, msg: "fetch successfully", data: users, total: total.length});
         } else {
             res.status(404).send({success: false, msg: "users not found", data: [], total: null});
         }
@@ -31,7 +31,6 @@ module.exports.GetAll = async (req, res) => {
     }
 };
 module.exports.VerifyOTP = async (req, res) => {
-    console.log("req", res)
     try {
         const {otp, email} = req.body;
         const user = await User.findOne({email: email}).lean();
@@ -67,7 +66,6 @@ module.exports.VerifyOTP = async (req, res) => {
     }
 };
 module.exports.Login = async (req, res) => {
-
     try {
         const {email, password,name, type,provider,picture,email_verified} = req.body;
         const user = await User.findOne({email: email}).lean();
@@ -78,7 +76,7 @@ module.exports.Login = async (req, res) => {
                 res.status(200).send({success: true, token:tokens,data:user,provider:provider});
             }
             else {
-                let user = new User({email:email,name:name,profile_url: picture})
+                let user = new User({email:email,name:name,userName:name,profile_url: picture})
                 user.save(async function (error, document) {
                     if (error) {
                         res.status(400).send({success: false, msg: "Login failed", data: error,});
@@ -334,3 +332,22 @@ module.exports.generateAccessToken = async (req, res) => {
         })
         .catch((err) => res.status(400).json(err));
 }
+
+module.exports.blockUser = async (req, res) => {
+    try {
+        let { status,userId, blockUserId } =  req.body;
+        if(status === 'block'){
+            await User.findOneAndUpdate({_id:userId}, { $push: { "blockedUsers": blockUserId } }).lean();
+            res.status(200).send({success: true, msg: "Success", data: ''});
+        }
+        else if(status === 'unBlock'){
+            await User.findOneAndUpdate({_id:userId}, { $pull: { "blockedUsers": blockUserId } }).lean();
+            res.status(200).send({success: true, msg: "Success", data: ''});
+        }
+        else {
+            res.status(400).send({success: false, msg: "Something went wrong!", data: null});
+        }
+    } catch (ex) {
+        res.send(ex)
+    }
+};
