@@ -2,8 +2,8 @@ const { getFollowers,getFollowings,unFollow } = require("../Controllers/Follower
 const router = require("express").Router();
 const auth = require("../Middleware/Auth");
 
-router.get("/getFollowers/:id",auth, getFollowers);
-router.get("/getFollowings/:id",auth, getFollowings);
+router.get("/:id/getFollowers",auth, getFollowers);
+router.get("/:id/getFollowings",auth, getFollowings);
 router.post("/removeFollower",auth, unFollow);
 
 module.exports = router;

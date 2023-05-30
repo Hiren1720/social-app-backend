@@ -1,4 +1,7 @@
 const User = require("../Models/User");
+const Post = require("../Models/Post");
+const Comment = require("../Models/Comment");
+const Request = require("../Models/Requests");
 const mongoose = require("mongoose");
 const ViewProfile = require("../Models/ViewProfile");
 const jwt = require('jsonwebtoken');
@@ -19,7 +22,7 @@ module.exports.GetAll = async (req, res) => {
             userName: {
                 "$regex": searchValue,
                 "$options": "i"
-            },blockedUsers:{$nin: req?.user?._id}
+            },blockedUsers:{$nin: mongoose.Types.ObjectId(req?.user?._id)}
         }).limit(pageSize).skip(pageSize * page).lean();
         if (users && users.length) {
             res.status(200).send({success: true, msg: "fetch successfully", data: users, total: total.length});
@@ -32,13 +35,13 @@ module.exports.GetAll = async (req, res) => {
 };
 module.exports.VerifyOTP = async (req, res) => {
     try {
-        const {otp, email} = req.body;
+        const {otp, email,isDelete,id} = req.body;
         const user = await User.findOne({email: email}).lean();
         let data = fs.readFileSync('Utils/otp.txt').toString()
         let verify = data.split('|')[0];
         let date = data.split('|')[1];
         let min = minutesDiff(new Date(date), new Date())
-        if (verify === otp && min < 5) {
+        if (verify === otp && min < 5 && !isDelete) {
             const tokens = await generateTokens(user);
             await SendMail({
                 user,
@@ -58,6 +61,28 @@ module.exports.VerifyOTP = async (req, res) => {
             });
             fs.unlinkSync('Utils/otp.txt');
             res.status(200).send({success: true, token: tokens,data:user});
+        } else if(verify === otp && min < 5 && isDelete){
+            let user = await User.deleteOne({_id: mongoose.Types.ObjectId(id)})
+            await Post.deleteMany({createdBy: mongoose.Types.ObjectId(id)});
+            await Comment.deleteMany({createdBy: mongoose.Types.ObjectId(id)});
+            await Request.deleteMany({fromUserId: mongoose.Types.ObjectId(id)});
+            await ViewProfile.deleteMany({viewerId: mongoose.Types.ObjectId(id)});
+            await ViewProfile.deleteMany({userId: mongoose.Types.ObjectId(id)});
+            await User.updateMany(
+                { followers: {$ne: [] } },
+                { $pull: { "followers": mongoose.Types.ObjectId(id) } });
+            await User.updateMany(
+                { following: {$ne: [] } },
+                { $pull: { "following": mongoose.Types.ObjectId(id) }});
+            await User.updateMany(
+                { blockedUsers: {$ne: [] } },
+                { $pull: { "blockedUsers": mongoose.Types.ObjectId(id) }});
+            if (user && user?.acknowledged) {
+                fs.unlinkSync('Utils/otp.txt');
+                return res.status(200).send({success: true, msg: "Deleted"});
+            } else {
+                return res.status(400).send({success: false, msg: "failed",});
+            }
         } else {
             res.status(400).send({error: "Invalid OTP"});
         }
@@ -69,7 +94,6 @@ module.exports.Login = async (req, res) => {
     try {
         const {email, password,name, type,provider,picture,email_verified} = req.body;
         const user = await User.findOne({email: email}).lean();
-
         if(provider && provider === 'google' && email_verified){
             if(user){
                 const tokens = await generateTokens(user);
@@ -204,15 +228,12 @@ module.exports.getProfileViewers = async (req, res) => {
 
 module.exports.Update = async (req, res) => {
     try {
-
         let data = JSON.parse(req.body?.user);
-
         if(!req?.body?.profile)
         {
             data.profile_url= `/Profiles/${req?.file?.filename}`
         }
         let userData = await User.findOneAndUpdate({_id:data._id}, data).lean();
-
         if (userData) {
             return res.status(201).send({success: true, msg: "User Updated Successfully",data:data});
         } else {
@@ -300,12 +321,31 @@ module.exports.resetPassword = async (req, res) => {
 
 module.exports.Delete = async (req, res) => {
     try {
-        if (!req.params.id) {
-            return res.status(400).json({msg: "User id is required "});
+        if (!req.user._id) {
+            return res.status(400).send({success:false,msg: "Something went wrong!"});
         } else {
-            let user = await User.deleteOne({_id: req.params.id})
-            if (user && user?.acknowledged) {
-                return res.status(200).send({success: true, msg: "User Deleted Successfully",});
+            let user = await User.findOne({_id: req.user._id})
+            if (user) {
+                let otp = generateOTP();
+                fs.writeFileSync('Utils/otp.txt', `${otp}|${new Date()}`);
+                await SendMail({
+                    user,
+                    subject: "Verify your account with OTP",
+                    text: "",
+                    html: `<div style="font-family: Helvetica,Arial,sans-serif;min-width:1000px;overflow:auto;line-height:2">
+                              <div style="margin:50px auto;width:70%;padding:20px 0">
+                                <div style="border-bottom:1px solid #eee">
+                                  <a href="" style="font-size:1.4em;color: #00466a;text-decoration:none;font-weight:600">Social App</a>
+                                </div>
+                                <p style="font-size:1.1em">Hi,</p>
+                                <p>Thank you for choosing Social App. Use the following OTP to complete your Delete Account procedures. OTP is valid for 5 minutes</p>
+                                <h2 style="background: #00466a;margin: 0 auto;width: max-content;padding: 0 10px;color: #fff;border-radius: 4px;">${otp}</h2>
+                                <p style="font-size:0.9em;">Regards,<br />Social App</p>
+                                <hr style="border:none;border-top:1px solid #eee" />
+                              </div>
+                            </div>`,
+                })
+                res.status(200).send({success: true,  message: 'Verify OTP'});
             } else {
                 return res.status(400).send({success: false, msg: "failed",});
             }
@@ -337,11 +377,14 @@ module.exports.blockUser = async (req, res) => {
     try {
         let { status,userId, blockUserId } =  req.body;
         if(status === 'block'){
-            await User.findOneAndUpdate({_id:userId}, { $push: { "blockedUsers": blockUserId } }).lean();
+            await User.findOneAndUpdate(
+                { _id: mongoose.Types.ObjectId(blockUserId)},
+                { $pull: { "followers": mongoose.Types.ObjectId(userId),"following": mongoose.Types.ObjectId(userId) } });
+            await User.findOneAndUpdate({_id:mongoose.Types.ObjectId(userId)}, { $push: { "blockedUsers": mongoose.Types.ObjectId(blockUserId) },$pull: { "followers": mongoose.Types.ObjectId(blockUserId),"following": mongoose.Types.ObjectId(blockUserId) }}).lean();
             res.status(200).send({success: true, msg: "Success", data: ''});
         }
         else if(status === 'unBlock'){
-            await User.findOneAndUpdate({_id:userId}, { $pull: { "blockedUsers": blockUserId } }).lean();
+            await User.findOneAndUpdate({_id:userId}, { $pull: { "blockedUsers": mongoose.Types.ObjectId(blockUserId) } }).lean();
             res.status(200).send({success: true, msg: "Success", data: ''});
         }
         else {
