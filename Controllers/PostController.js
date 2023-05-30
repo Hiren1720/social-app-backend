@@ -1,5 +1,6 @@
 const Post = require("../Models/Post");
 const User = require("../Models/User");
+const mongoose = require("mongoose");
 
 module.exports.createPost = async (req, res) => {
     try {
@@ -109,6 +110,49 @@ module.exports.postLike = async (req, res) => {
         else{
             await Post.findOneAndUpdate({_id:postId}, { $push: { "likes": likeBy } }).lean();
             res.status(200).send({success: true, msg: "Liked", data: 'requestUpdate'});
+        }
+    } catch (ex) {
+
+    }
+};
+module.exports.getPost = async (req, res) => {
+    try {
+        let {id} = req.params;
+        let post = await Post.aggregate([
+            {$match:{_id: mongoose.Types.ObjectId(id)}},
+            {
+                $lookup:{
+                    from: 'users',
+                    localField: 'createdBy',
+                    foreignField: '_id',
+                    as: 'author_info'
+                }
+            },
+            {
+                $project:{
+                    author_info:{
+                        name:1,
+                        userName:1,
+                        profile_url:1
+                    },
+                    createdBy:1,
+                    content:1,
+                    createdAt:1,
+                    likes:1,
+                    comments:1,
+                    title:1,
+                    hashTags:1,
+                    device:1,
+                    mentions:1,
+                    imageUrl:1
+                }
+            },
+        ])
+        if(post){
+            res.status(200).send({success: true, msg: "Success", data: post});
+        }
+        else{
+            res.status(400).send({success: false, msg: "Something went wrong!", data:null});
         }
     } catch (ex) {
 

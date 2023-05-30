@@ -57,8 +57,8 @@ module.exports.updateRequest = async (req, res) => {
         let { status, id } =  req.params;
         if(status === 'accepted'){
             let request = await Request.findOne({_id:id});
-            await User.findOneAndUpdate({_id:request?.fromUserId}, { $push: { "following": request?.toUserId } });
-            await User.findOneAndUpdate({_id:request?.toUserId}, { $push: { "followers": request?.fromUserId } });
+            await User.findOneAndUpdate({_id:request?.fromUserId}, { $push: { "following": mongoose.Types.ObjectId(request?.toUserId) } });
+            await User.findOneAndUpdate({_id:request?.toUserId}, { $push: { "followers": mongoose.Types.ObjectId(request?.fromUserId) } });
             let requestUpdate = await Request.deleteOne({_id:id});
             res.status(200).send({success: true, msg: "Accepted", data: requestUpdate});
         }

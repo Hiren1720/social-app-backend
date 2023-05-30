@@ -1,14 +1,32 @@
 const User = require("../Models/User");
-
+const mongoose = require('mongoose');
+function getFollowerFollowing(id,localField){
+    return User.aggregate([
+        {$match:{_id:mongoose.Types.ObjectId(id)}},
+        {
+            $lookup:{
+                from: 'users',
+                localField: localField,
+                foreignField: '_id',
+                as: 'author_info'
+            }
+        },
+        {
+            $project:{
+                author_info:{
+                    blockedUsers:0,
+                    password:0,
+                    updatedAt:0,
+                },
+            }
+        },
+    ])
+}
 module.exports.getFollowers = async (req, res) => {
     try {
-        let user = await User.findOne({_id:req.params.id}).lean();
-        if(user && user.followers){
-            let data = user.followers.length && user.followers.map(async (ele)=>{
-                return await User.findOne({_id:ele}).lean();
-            });
-            let final = data ? await Promise.all(data):[];
-            res.status(200).send({success: true, msg: "Followers fetch successfully", data: final});
+        let data = await getFollowerFollowing(req.params.id,'followers')
+        if(data && data.length){
+            res.status(200).send({success: true, msg: "Followers fetch successfully", data: data[0]?.author_info});
         }
         else {
             res.status(400).send({success: false, msg: "Something went wrong!", data: null});
@@ -20,13 +38,9 @@ module.exports.getFollowers = async (req, res) => {
 
 module.exports.getFollowings = async (req, res) => {
     try {
-        let user = await User.findOne({_id:req.params.id}).lean();
-        if(user && user.following){
-            let data = user.following.length && user.following.map(async (ele)=>{
-                return await User.findOne({_id:ele}).lean();
-            });
-            let final = data ? await Promise.all(data):[];
-            res.status(200).send({success: true, msg: "Followings fetch successfully", data: final});
+        let data = await getFollowerFollowing(req.params.id,'following')
+        if(data && data.length){
+            res.status(200).send({success: true, msg: "Followings fetch successfully", data: data[0]?.author_info});
         }
         else {
             res.status(400).send({success: false, msg: "Something went wrong!", data: null});
@@ -39,8 +53,8 @@ module.exports.getFollowings = async (req, res) => {
 module.exports.unFollow = async (req, res) => {
     try {
         let {followerId,followingId,status} = req.body;
-        await User.findOneAndUpdate({_id:followerId}, { $pull: { "following": followingId } }).lean();
-        await User.findOneAndUpdate({_id:followingId}, { $pull: { "followers": followerId } }).lean();
+        await User.findByIdAndUpdate({_id:followerId}, { $pull: { "following": mongoose.Types.ObjectId(followingId) } });
+        await User.findByIdAndUpdate({_id:followingId}, { $pull: { "followers": mongoose.Types.ObjectId(followerId) } });
         res.status(200).send({success: true, msg: status + "successfully"});
     } catch (ex) {
 
