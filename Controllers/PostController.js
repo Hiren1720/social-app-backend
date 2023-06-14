@@ -5,7 +5,7 @@ const mongoose = require("mongoose");
 module.exports.createPost = async (req, res) => {
     try {
         let postData = JSON.parse(req.body?.post);
-        let post = new Post({...postData,imageUrl: req?.file?.filename ? `/Posts/${req?.file?.filename}`:''});
+        let post = new Post({...postData,imageUrl: req?.files?.length > 0 ? req?.files.map(ele => {return {type:ele.mimetype.split('/')[0],url:`/Posts/${ele?.filename}`}}):[]});
         post.save(function (error, document) {
             if (error) {
                 res.status(400).send({success: false, msg: "Request Failed", data: error});
