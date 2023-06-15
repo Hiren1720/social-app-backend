@@ -43,6 +43,7 @@ module.exports.VerifyOTP = async (req, res) => {
         let min = minutesDiff(new Date(date), new Date())
         if (verify === otp && min < 5 && !isDelete) {
             const tokens = await generateTokens(user);
+            await User.findOneAndUpdate({email:email},{status:true})
             await SendMail({
                 user,
                 subject: "Login Attempt!",
@@ -97,10 +98,11 @@ module.exports.Login = async (req, res) => {
         if(provider && provider === 'google' && email_verified){
             if(user){
                 const tokens = await generateTokens(user);
+                await User.findOneAndUpdate({email: email},{status:true})
                 res.status(200).send({success: true, token:tokens,data:user,provider:provider});
             }
             else {
-                let user = new User({email:email,name:name,userName:name,profile_url: picture})
+                let user = new User({email:email,name:name,userName:name,profile_url: picture,status:true})
                 user.save(async function (error, document) {
                     if (error) {
                         res.status(400).send({success: false, msg: "Login failed", data: error,});
@@ -112,7 +114,7 @@ module.exports.Login = async (req, res) => {
             }
         }
         else if (user && !provider) {
-            if (to_Decrypt(user.password) === password) {
+            if (user.password && to_Decrypt(user.password) === password) {
                 let otp = generateOTP();
                 fs.writeFileSync('Utils/otp.txt', `${otp}|${new Date()}`);
                 await SendMail({
@@ -158,7 +160,7 @@ module.exports.Register = async (req, res) => {
         const {email, password} = data;
         const user = await User.findOne({email}).lean();
         if (user) {
-            return res.json({msg: "User already exists", status: false});
+            return res.status(409).send({msg: "User already exists", status: false});
         } else {
             let user = new User({...data, password: to_Encrypt(password),profile_url: `/Profiles/${req?.file?.filename}`})
             user.save(function (error, document) {
@@ -182,8 +184,10 @@ module.exports.getById = async (req, res) => {
         if(!visitor && req.params.id !== req.user._id){
             new ViewProfile({viewerId:req.user._id,userId: req.params.id}).save();
         }
+        let visitors = await ViewProfile.find({userId:req.params.id});
+        let rating = Math.round(visitors.length / 5);
         if (user) {
-            res.status(200).send({success: true, msg: "User Found", data: user});
+            res.status(200).send({success: true, msg: "User Found", data: {...user,rating:rating}});
         } else {
             res.status(404).send({success: false, msg: "User Not Found", data: null});
         }
