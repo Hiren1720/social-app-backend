@@ -4,7 +4,6 @@ const Comment = require("../Models/Comment");
 const Request = require("../Models/Requests");
 const mongoose = require("mongoose");
 const ViewProfile = require("../Models/ViewProfile");
-const SavedPost = require('../Models/SavedPost');
 const jwt = require('jsonwebtoken');
 const fs = require("fs");
 const {to_Encrypt, to_Decrypt} = require("../Utils/encryptDecrypt");
@@ -206,37 +205,6 @@ module.exports.getById = async (req, res) => {
 };
 
 
-module.exports.savedPost = async (req, res) => {
-    try {
-        const user = await User.findOne({_id: req.params.id}).lean();
-        const post = await SavedPost.findOne({userId: mongoose.Types.ObjectId(req.body.userId)}).lean();
-        if (user) {
-            if (!post) {
-                new SavedPost({
-                    postId: mongoose.Types.ObjectId(req.body.postId),
-                    userId: mongoose.Types.ObjectId(req.body.userId)
-                }).save();
-                res.status(200).send({success: true, msg: "User Found", status: "saved"});
-            } else {
-                let saved = await SavedPost.findOne({postId: mongoose.Types.ObjectId(req.body.postId)}).lean();
-                if (saved) {
-                    console.log("unsaved", saved, req.body.postId, mongoose.Types.ObjectId(req.body.postId))
-                    await SavedPost.findOneAndUpdate({_id: mongoose.Types.ObjectId(post?._id)}, {$pull: {"postId": mongoose.Types.ObjectId(req.body.postId)}})
-                    res.status(200).send({success: true, msg: "User Found", status: "unsaved"});
-                } else {
-                    await SavedPost.findOneAndUpdate({_id: mongoose.Types.ObjectId(post?._id)}, {$push: {"postId": mongoose.Types.ObjectId(req.body.postId)}})
-                    res.status(200).send({success: true, msg: "User Found", status: "saved"});
-                }
-            }
-        } else {
-            res.status(404).send({success: false, msg: "User Not Found", status: "not saved"});
-        }
-    } catch (ex) {
-        res.send(ex);
-    }
-};
-
-
 module.exports.getProfileViewers = async (req, res) => {
     try {
         let user = await ViewProfile.aggregate([
@@ -269,55 +237,6 @@ module.exports.getProfileViewers = async (req, res) => {
         res.send(ex);
     }
 };
-
-
-module.exports.getSavedPost = async (req, res) => {
-    try {
-        let saved_post = await SavedPost.aggregate([
-            // {$match:{userId:mongoose.Types.ObjectId(req.user._id)}},
-            {
-                "$lookup": {
-                    "localField": "_id",
-                    "from": "posts",
-                    "foreignField": "postId",
-                    "as": "posts"
-                }
-            },
-            {
-                "$unwind": {
-                    "path": "$posts",
-                    "preserveNullAndEmptyArrays": true
-                }
-            },
-            {
-                "$lookup": {
-                    "localField": "users._id",
-                    "from": "users",
-                    "foreignField": "createdBy",
-                    "as": "post.author"
-                }
-            },
-            {
-                "$group": {
-                    "_id": "$_id",
-                    "name": {
-                        "$first": "$name"
-                    },
-                    "posts": {
-                        "$push": "$posts"
-                    }
-                }
-            }
-        ])
-        if (saved_post) {
-            return res.status(200).send({success: true, msg: "Success", data: saved_post ? saved_post : []});
-        } else {
-            return res.status(400).send({success: false, msg: "Failed", data: []});
-        }
-    } catch (e) {
-        res.send(e);
-    }
-}
 
 module.exports.Update = async (req, res) => {
     try {

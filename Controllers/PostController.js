@@ -67,7 +67,8 @@ module.exports.getAllPost = async (req, res) => {
                     hashTags:1,
                     device:1,
                     mentions:1,
-                    imageUrl:1
+                    imageUrl:1,
+                    savedBy:1,
                 }
             },
         ]).sort({createdAt:-1})
@@ -189,7 +190,8 @@ module.exports.getPost = async (req, res) => {
                     hashTags:1,
                     device:1,
                     mentions:1,
-                    imageUrl:1
+                    imageUrl:1,
+                    savedBy:1,
                 }
             },
         ])
@@ -203,3 +205,48 @@ module.exports.getPost = async (req, res) => {
 
     }
 };
+
+module.exports.savePost = async (req, res) => {
+    try {
+        let {id} = req.body;
+        let {_id} = req.user;
+        const post = await Post.findOne({_id: id}).lean();
+        if (post) {
+            if(post.savedBy.includes(_id)){
+                await Post.findOneAndUpdate({_id:id},{$pull:{savedBy:mongoose.Types.ObjectId(_id)}});
+                res.status(200).send({success: true, msg: "Unsaved"});
+            }else{
+                await Post.findOneAndUpdate({_id:id},{$push:{savedBy:mongoose.Types.ObjectId(_id)}});
+                res.status(200).send({success: true, msg: "Saved"});
+            }
+        } else {
+            res.status(404).send({success: false, msg: "Failed"});
+        }
+    } catch (ex) {
+        res.send(ex);
+    }
+};
+
+module.exports.getSavedPost = async (req, res) => {
+    try {
+        let saved_post = await Post.aggregate([
+            {
+                $match : {
+                    savedBy : {
+                        $elemMatch : {
+                            $and : mongoose.Types.ObjectId(req.user._id)
+                        }
+                    },
+                }
+            }
+        ])
+        console.log('saved_post',saved_post)
+        if ('saved_post') {
+            return res.status(200).send({success: true, msg: "Success", data: []});
+        } else {
+            return res.status(400).send({success: false, msg: "Failed", data: []});
+        }
+    } catch (e) {
+        res.send(e);
+    }
+}

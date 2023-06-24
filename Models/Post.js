@@ -29,6 +29,9 @@ const Post = new mongoose.Schema({
     comments:{
         type: Array
     },
+    savedBy:{
+        type:Array
+    }
 },{
     timestamps:true,
     versionKey: false
