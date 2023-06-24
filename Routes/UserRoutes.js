@@ -1,7 +1,7 @@
 const multer = require('multer');
 const {storageEngine} = require('../Utils/helper');
 const upload = multer({ storage: storageEngine('Profiles') });
-const { GetAll,getById,Register,Login,VerifyOTP,Update,Delete,LogOut,generateAccessToken,getProfileViewers, forgotPassword,resetPassword,blockUser  } = require("../Controllers/UserController");
+const { GetAll,getById,Register,Login,VerifyOTP,Update,Delete,LogOut,generateAccessToken,getProfileViewers, forgotPassword,resetPassword,blockUser,getSavedPost,savedPost  } = require("../Controllers/UserController");
 const router = require("express").Router();
 const auth = require("../Middleware/Auth");
 
@@ -18,5 +18,6 @@ router.post("/update",upload.single('profile'),auth, Update);
 router.post("/block-user",auth, blockUser);
 router.post("/refreshToken", generateAccessToken);
 router.delete("/delete-account",auth, Delete);
-
+router.get("/savedPosts",auth, getSavedPost);
+router.post("/:id/post",auth, savedPost);
 module.exports = router;
