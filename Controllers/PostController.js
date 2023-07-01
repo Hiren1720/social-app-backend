@@ -29,7 +29,6 @@ module.exports.updatePost = async (req, res) => {
         const filteredArray = data?.imageUrl.filter(obj => Object.keys(obj).length !== 0);
         image.push(...filteredArray);
 
-        console.log("multipleimages", [...image], req.files, data.imageUrl);
         let postData = await Post.findOneAndUpdate({_id:data._id}, {...data,imageUrl:[...image]}).lean();
         if (postData) {
             return res.status(201).send({success: true, msg: "Post Updated Successfully",data:'document'});
@@ -99,7 +98,7 @@ module.exports.getMentionPosts = async (req, res) => {
                         }
                     },
                 }
-            }
+            },
         ]);
         if(post && post.length){
             res.status(200).send({success: true, msg: "", data: post});
@@ -211,11 +210,15 @@ module.exports.savePost = async (req, res) => {
         let {id} = req.body;
         let {_id} = req.user;
         const post = await Post.findOne({_id: id}).lean();
+        console.log("post.savedBy.includes(mongoose.Types.ObjectId(_id))",post.savedBy.includes(mongoose.Types.ObjectId(req.user._id)),post.savedBy.includes(req.user._id),"mongoose.Types.ObjectId(_id)",mongoose.Types.ObjectId(_id),post.savedBy)
         if (post) {
-            if(post.savedBy.includes(_id)){
+            // if(post.savedBy.includes(mongoose.Types.ObjectId(_id))){
+            if(post.savedBy.some(objId => objId.equals(req.user._id))){
+                console.log("post.savedBy",post.savedBy)
                 await Post.findOneAndUpdate({_id:id},{$pull:{savedBy:mongoose.Types.ObjectId(_id)}});
                 res.status(200).send({success: true, msg: "Unsaved"});
             }else{
+                console.log("post",post)
                 await Post.findOneAndUpdate({_id:id},{$push:{savedBy:mongoose.Types.ObjectId(_id)}});
                 res.status(200).send({success: true, msg: "Saved"});
             }
@@ -234,15 +237,43 @@ module.exports.getSavedPost = async (req, res) => {
                 $match : {
                     savedBy : {
                         $elemMatch : {
-                            $and : mongoose.Types.ObjectId(req.user._id)
+                            $eq :mongoose.Types.ObjectId(req.user._id)
                         }
                     },
                 }
-            }
+            },
+            {
+                $lookup:{
+                    from: 'users',
+                    localField: 'createdBy',
+                    foreignField: '_id',
+                    as: 'author_info'
+                }
+            },
+            {
+                $project:{
+                    author_info:{
+                        name:1,
+                        userName:1,
+                        profile_url:1
+                    },
+                    createdBy:1,
+                    content:1,
+                    createdAt:1,
+                    likes:1,
+                    comments:1,
+                    title:1,
+                    hashTags:1,
+                    device:1,
+                    mentions:1,
+                    imageUrl:1,
+                    savedBy:1,
+                }
+            },
         ])
         console.log('saved_post',saved_post)
-        if ('saved_post') {
-            return res.status(200).send({success: true, msg: "Success", data: []});
+        if (saved_post) {
+            return res.status(200).send({success: true, msg: "Success", data: saved_post});
         } else {
             return res.status(400).send({success: false, msg: "Failed", data: []});
         }

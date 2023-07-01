@@ -46,6 +46,9 @@ const User = new mongoose.Schema({
     status: {
         type: Boolean,
     },
+    bio:{
+        type:String,
+    },
 },{
     timestamps: true,
     versionKey:false,
