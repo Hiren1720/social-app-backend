@@ -131,17 +131,36 @@ module.exports.deletePost = async  (req, res)=>{
 }
 module.exports.getAllLikes = async (req, res) => {
     try {
-        let users = await User.find({
-            '_id': { $in: req?.body}
-        }).lean();
-        if(users && users.length){
-            res.status(200).send({success: true, msg: "", data: users});
+        let {id} = req?.query;
+        let likes = await Post.aggregate([
+            {$match:{_id: mongoose.Types.ObjectId(id)}},
+            {
+                $lookup: {
+                    from: "users",
+                    localField: "likes",
+                    foreignField: "_id",
+                    as: "likedUsers"
+                }
+            },
+            {
+                $project: {
+                    likedUsers: {
+                        _id:1,
+                        name: 1,
+                        userName: 1,
+                        profile_url: 1
+                    },
+                }
+            }
+        ]);
+        if(likes?.length && likes[0]?.likedUsers?.length){
+            res.status(200).send({success: true, msg: "", data: likes[0]?.likedUsers});
         }
         else{
-            res.status(400).send({success: false, msg: "", data: null});
+            res.status(400).send({success: false, msg: "Something went wrong!", data: null});
         }
     } catch (ex) {
-        res.status(400).send({success: false, msg: "", error: ex});
+        res.status(400).send({success: false, msg: "Something went wrong!", error: ex});
     }
 };
 module.exports.postLike = async (req, res) => {
@@ -149,11 +168,11 @@ module.exports.postLike = async (req, res) => {
         let {postId,likeBy} = req.body;
         let post = await Post.findOne({_id: postId}).lean();
         if(post.likes.includes(likeBy)){
-            await Post.findOneAndUpdate({_id:postId}, { $pull: { "likes": likeBy } }).lean();
+            await Post.findOneAndUpdate({_id:postId}, { $pull: { "likes": mongoose.Types.ObjectId(likeBy) } }).lean();
             res.status(200).send({success: true, msg: "Disliked", data: 'requestUpdate'});
         }
         else{
-            await Post.findOneAndUpdate({_id:postId}, { $push: { "likes": likeBy } }).lean();
+            await Post.findOneAndUpdate({_id:postId}, { $push: { "likes": mongoose.Types.ObjectId(likeBy) } }).lean();
             res.status(200).send({success: true, msg: "Liked", data: 'requestUpdate'});
         }
     } catch (ex) {

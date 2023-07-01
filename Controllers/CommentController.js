@@ -21,8 +21,9 @@ module.exports.createCommentOnPost = async (req, res) => {
 };
 module.exports.getCommentsById = async (req, res) => {
     try {
+        let {id} = req?.query;
         let comments = await Comment.aggregate([
-            {$match:{postId:mongoose.Types.ObjectId(req.params.id) }},
+            {$match:{postId:mongoose.Types.ObjectId(id) }},
             {
                 $lookup: {
                     from: 'users',
