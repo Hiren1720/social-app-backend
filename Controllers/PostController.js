@@ -210,15 +210,11 @@ module.exports.savePost = async (req, res) => {
         let {id} = req.body;
         let {_id} = req.user;
         const post = await Post.findOne({_id: id}).lean();
-        console.log("post.savedBy.includes(mongoose.Types.ObjectId(_id))",post.savedBy.includes(mongoose.Types.ObjectId(req.user._id)),post.savedBy.includes(req.user._id),"mongoose.Types.ObjectId(_id)",mongoose.Types.ObjectId(_id),post.savedBy)
         if (post) {
-            // if(post.savedBy.includes(mongoose.Types.ObjectId(_id))){
             if(post.savedBy.some(objId => objId.equals(req.user._id))){
-                console.log("post.savedBy",post.savedBy)
                 await Post.findOneAndUpdate({_id:id},{$pull:{savedBy:mongoose.Types.ObjectId(_id)}});
                 res.status(200).send({success: true, msg: "Unsaved"});
             }else{
-                console.log("post",post)
                 await Post.findOneAndUpdate({_id:id},{$push:{savedBy:mongoose.Types.ObjectId(_id)}});
                 res.status(200).send({success: true, msg: "Saved"});
             }
@@ -270,8 +266,7 @@ module.exports.getSavedPost = async (req, res) => {
                     savedBy:1,
                 }
             },
-        ])
-        console.log('saved_post',saved_post)
+        ]).sort({createdAt:-1})
         if (saved_post) {
             return res.status(200).send({success: true, msg: "Success", data: saved_post});
         } else {
