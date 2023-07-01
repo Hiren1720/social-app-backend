@@ -1,5 +1,6 @@
 
 const { createPost, getAllPost, postLike,getAllLikes,getMentionPosts,deletePost,updatePost,getPost,getSavedPost,savePost} = require("../Controllers/PostController");
+const { createCommentOnPost,getCommentsById } = require("../Controllers/CommentController");
 const router = require("express").Router();
 const auth = require("../Middleware/Auth");
 const multer = require('multer');
@@ -10,9 +11,11 @@ router.post("/update",auth,upload.array('postImage'),updatePost);
 router.get("/getAllPost",auth, getAllPost);
 router.get("/:id/getPost",auth, getPost);
 router.post("/postLike",auth, postLike);
-router.post("/getLikes",auth, getAllLikes);
+router.get("/likes",auth, getAllLikes);
 router.get("/getMentionPosts/:id",auth, getMentionPosts);
 router.post("/deletePost/:id", auth, deletePost);
 router.get("/savedPosts",auth, getSavedPost);
 router.post("/savePost",auth, savePost);
+router.post("/create",auth, createCommentOnPost);
+router.get("/comments",auth, getCommentsById);
 module.exports = router;

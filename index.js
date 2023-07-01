@@ -8,7 +8,6 @@ const PostRoutes = require("./Routes/PostRoutes");
 const RequestRoutes = require("./Routes/RequestRoutes");
 const FollowersRoute = require("./Routes/FollowersRoute");
 const AdminRoutes = require("./Routes/AdminRoutes");
-const CommentRoutes = require("./Routes/CommentRoutes");
 const Comment = require("./Models/Comment");
 const Post = require("./Models/Post");
 const app = express();
@@ -41,7 +40,6 @@ app.use("/api/request", RequestRoutes);
 app.use("/api/follower", FollowersRoute);
 app.use("/api/post", PostRoutes);
 app.use("/api/admin", AdminRoutes);
-app.use("/api/comment", CommentRoutes);
 app.use(express.static('Photos'));
 
 const io = socket(server,{ origins: '*:*' });
