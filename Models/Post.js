@@ -5,7 +5,7 @@ const Post = new mongoose.Schema({
         type: String
     },
     imageUrl:{
-        type: String
+        type: Array
     },
     hashTags:{
       type:Array
@@ -29,6 +29,9 @@ const Post = new mongoose.Schema({
     comments:{
         type: Array
     },
+    savedBy:{
+        type:Array
+    }
 },{
     timestamps:true,
     versionKey: false

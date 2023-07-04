@@ -1,5 +1,6 @@
 const User = require("../Models/User");
 const Post = require("../Models/Post");
+const VisitorTime = require("../Models/VisitorTime");
 const Comment = require("../Models/Comment");
 const Request = require("../Models/Requests");
 const mongoose = require("mongoose");
@@ -43,6 +44,7 @@ module.exports.VerifyOTP = async (req, res) => {
         let min = minutesDiff(new Date(date), new Date())
         if (verify === otp && min < 5 && !isDelete) {
             const tokens = await generateTokens(user);
+            await User.findOneAndUpdate({email:email},{status:true})
             await SendMail({
                 user,
                 subject: "Login Attempt!",
@@ -97,10 +99,11 @@ module.exports.Login = async (req, res) => {
         if(provider && provider === 'google' && email_verified){
             if(user){
                 const tokens = await generateTokens(user);
+                await User.findOneAndUpdate({email: email},{status:true})
                 res.status(200).send({success: true, token:tokens,data:user,provider:provider});
             }
             else {
-                let user = new User({email:email,name:name,userName:name,profile_url: picture})
+                let user = new User({email:email,name:name,userName:name,profile_url: picture,status:true})
                 user.save(async function (error, document) {
                     if (error) {
                         res.status(400).send({success: false, msg: "Login failed", data: error,});
@@ -112,7 +115,7 @@ module.exports.Login = async (req, res) => {
             }
         }
         else if (user && !provider) {
-            if (to_Decrypt(user.password) === password) {
+            if (user.password && to_Decrypt(user.password) === password) {
                 let otp = generateOTP();
                 fs.writeFileSync('Utils/otp.txt', `${otp}|${new Date()}`);
                 await SendMail({
@@ -158,7 +161,7 @@ module.exports.Register = async (req, res) => {
         const {email, password} = data;
         const user = await User.findOne({email}).lean();
         if (user) {
-            return res.json({msg: "User already exists", status: false});
+            return res.status(409).send({msg: "User already exists", status: false});
         } else {
             let user = new User({...data, password: to_Encrypt(password),profile_url: `/Profiles/${req?.file?.filename}`})
             user.save(function (error, document) {
@@ -182,8 +185,10 @@ module.exports.getById = async (req, res) => {
         if(!visitor && req.params.id !== req.user._id){
             new ViewProfile({viewerId:req.user._id,userId: req.params.id}).save();
         }
+        let visitors = await ViewProfile.find({userId:req.params.id});
+        let rating = Math.round(visitors.length / 5);
         if (user) {
-            res.status(200).send({success: true, msg: "User Found", data: user});
+            res.status(200).send({success: true, msg: "User Found", data: {...user,rating:rating}});
         } else {
             res.status(404).send({success: false, msg: "User Not Found", data: null});
         }
@@ -394,3 +399,75 @@ module.exports.blockUser = async (req, res) => {
         res.send(ex)
     }
 };
+
+module.exports.setPrivacy = async (req, res) => {
+    try {
+        let user = await User.findOne({_id: mongoose.Types.ObjectId(req.user._id)}).lean();
+        const userData = await User.findOneAndUpdate({_id: req.user._id}, {"privacy": !user.privacy}, {new: true}).lean();
+        if (userData) {
+            res.status(200).json({success: true, msg: "Updated", data: userData})
+        } else {
+            res.status(400).json({success: false, msg: "Something went wrong!", data: null})
+        }
+    } catch (ex) {
+        res.send(ex);
+    }
+}
+
+module.exports.setVisitorTime = async (req, res) => {
+    try {
+        let {user, totalTime} = req.body;
+        let data = await VisitorTime.findOne({
+            date: new Date().toLocaleDateString(),
+            userId: mongoose.Types.ObjectId(user._id)
+        }).lean();
+        if (data) {
+            let updateTime = await VisitorTime.findOneAndUpdate({
+                date: new Date().toLocaleDateString(),
+                userId: mongoose.Types.ObjectId(user._id)
+            }, {$inc: {"time": totalTime}}, {new: true}).lean();
+            if (updateTime) {
+                res.status(200).json({success: true, msg: "Success"});
+            } else {
+                res.status(400).json({success: false, msg: "Something went wrong!", data: null});
+            }
+        } else {
+            let time = new VisitorTime({
+                userId: user._id,
+                date: new Date().toLocaleDateString(),
+                time: totalTime
+            })
+            time.save(function (error, document) {
+                if (error) {
+                    res.status(400).send({success: false, msg: "Something went wrong!", data: error});
+                } else {
+                    res.status(201).send({success: true, msg: "Success", data: document});
+                }
+            })
+        }
+    } catch (e) {
+        res.send(e);
+    }
+}
+
+module.exports.getVisitorTime = async (req, res) => {
+    try {
+        let {_id} = req.user;
+        let data = await VisitorTime.find(
+            {
+                userId:mongoose.Types.ObjectId(_id),
+                'createdAt':
+                    {
+                        $gte: new Date((new Date().getTime() - (7 * 24 * 60 * 60 * 1000)))
+                    }
+            }
+        ).sort({"createdAt":1});
+        if (data) {
+            res.status(200).json({success: true, msg: "Success",data});
+        } else {
+            res.status(400).json({success: false, msg: "Something went wrong!", data: null});
+        }
+    } catch (e) {
+        res.send(e);
+    }
+}
