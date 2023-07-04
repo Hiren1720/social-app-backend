@@ -55,7 +55,8 @@ module.exports.getAllPost = async (req, res) => {
                     author_info:{
                         name:1,
                         userName:1,
-                        profile_url:1
+                        profile_url:1,
+                        privacy:1,
                     },
                     createdBy:1,
                     content:1,
@@ -270,7 +271,8 @@ module.exports.getSavedPost = async (req, res) => {
                     author_info:{
                         name:1,
                         userName:1,
-                        profile_url:1
+                        profile_url:1,
+
                     },
                     createdBy:1,
                     content:1,
