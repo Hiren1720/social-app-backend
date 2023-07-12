@@ -167,13 +167,17 @@ module.exports.postLike = async (req, res) => {
     try {
         let {postId,likeBy} = req.body;
         let post = await Post.findOne({_id: postId}).lean();
-        if(post.likes.includes(likeBy)){
-            await Post.findOneAndUpdate({_id:postId}, { $pull: { "likes": mongoose.Types.ObjectId(likeBy) } }).lean();
-            res.status(200).send({success: true, msg: "Disliked", data: 'requestUpdate'});
+        if (post) {
+            if (post.likes.some(objId => objId.equals(likeBy))) {
+                await Post.findOneAndUpdate({_id: postId}, {$pull: {"likes": mongoose.Types.ObjectId(likeBy)}}).lean();
+                res.status(200).send({success: true, msg: "Disliked", data: 'requestUpdate'});
+            } else {
+                await Post.findOneAndUpdate({_id: postId}, {$push: {"likes": mongoose.Types.ObjectId(likeBy)}}).lean();
+                res.status(200).send({success: true, msg: "Liked", data: 'requestUpdate'});
+            }
         }
-        else{
-            await Post.findOneAndUpdate({_id:postId}, { $push: { "likes": mongoose.Types.ObjectId(likeBy) } }).lean();
-            res.status(200).send({success: true, msg: "Liked", data: 'requestUpdate'});
+        else {
+            res.status(404).send({success: false, msg: "Post not found!", data: null});
         }
     } catch (ex) {
 
@@ -181,9 +185,9 @@ module.exports.postLike = async (req, res) => {
 };
 module.exports.getPost = async (req, res) => {
     try {
-        let {id} = req.params;
+        let {postId} = req.query;
         let post = await Post.aggregate([
-            {$match:{_id: mongoose.Types.ObjectId(id)}},
+            {$match:{_id: mongoose.Types.ObjectId(postId)}},
             {
                 $lookup:{
                     from: 'users',
@@ -255,6 +259,52 @@ module.exports.getSavedPost = async (req, res) => {
                             $eq :mongoose.Types.ObjectId(req.user._id)
                         }
                     },
+                }
+            },
+            {
+                $lookup:{
+                    from: 'users',
+                    localField: 'createdBy',
+                    foreignField: '_id',
+                    as: 'author_info'
+                }
+            },
+            {
+                $project:{
+                    author_info:{
+                        name:1,
+                        userName:1,
+                        profile_url:1
+                    },
+                    createdBy:1,
+                    content:1,
+                    createdAt:1,
+                    likes:1,
+                    comments:1,
+                    title:1,
+                    hashTags:1,
+                    device:1,
+                    mentions:1,
+                    imageUrl:1,
+                    savedBy:1,
+                }
+            },
+        ]).sort({createdAt:-1})
+        if (saved_post) {
+            return res.status(200).send({success: true, msg: "Success", data: saved_post});
+        } else {
+            return res.status(400).send({success: false, msg: "Failed", data: []});
+        }
+    } catch (e) {
+        res.send(e);
+    }
+}
+module.exports.getPostByUserId = async (req,res) => {
+    try {
+        let saved_post = await Post.aggregate([
+            {
+                $match : {
+                    createdBy : mongoose.Types.ObjectId(req.query.id)
                 }
             },
             {

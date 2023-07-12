@@ -1,7 +1,8 @@
 const User = require("../Models/User");
+const Post = require("../Models/Post");
 const mongoose = require('mongoose');
-function getFollowerFollowing(id,localField){
-    return User.aggregate([
+async function getFollowerFollowing(id,localField){
+    let data = await User.aggregate([
         {$match:{_id:mongoose.Types.ObjectId(id)}},
         {
             $lookup:{
@@ -20,13 +21,20 @@ function getFollowerFollowing(id,localField){
                 },
             }
         },
-    ])
+    ]);
+    if(data?.length && data[0]?.author_info){
+        data = data[0]?.author_info.map(async (ele)=> {
+            let posts = await Post.find({createdBy: mongoose.Types.ObjectId(ele?._id)});
+            return {...ele,posts}
+        })
+    }
+    return data?.length && data[0]?.author_info ? await Promise.all(data):[];
 }
 module.exports.getFollowers = async (req, res) => {
     try {
         let data = await getFollowerFollowing(req.params.id,'followers')
         if(data && data.length){
-            res.status(200).send({success: true, msg: "Followers fetch successfully", data: data[0]?.author_info});
+            res.status(200).send({success: true, msg: "Followers fetch successfully", data: data});
         }
         else {
             res.status(400).send({success: false, msg: "Something went wrong!", data: null});
@@ -40,7 +48,7 @@ module.exports.getFollowings = async (req, res) => {
     try {
         let data = await getFollowerFollowing(req.params.id,'following')
         if(data && data.length){
-            res.status(200).send({success: true, msg: "Followings fetch successfully", data: data[0]?.author_info});
+            res.status(200).send({success: true, msg: "Followings fetch successfully", data: data});
         }
         else {
             res.status(400).send({success: false, msg: "Something went wrong!", data: null});

@@ -19,19 +19,38 @@ module.exports.GetAll = async (req, res) => {
     try {
         let {page, searchValue, pageSize} = req?.query;
         const total = await User.find().lean();
-        const users = await User.find({
-            userName: {
-                "$regex": searchValue,
-                "$options": "i"
-            },blockedUsers:{$nin: mongoose.Types.ObjectId(req?.user?._id)}
-        }).limit(pageSize).skip(pageSize * page).lean();
+        let users = await User.aggregate([
+            {
+                $match: {
+                    userName: {
+                        $regex: searchValue,
+                        $options: "i"
+                    },
+                    blockedUsers: {
+                        $nin: [mongoose.Types.ObjectId(req?.user?._id)]
+                    }
+                }
+            },
+            {
+                $lookup:{
+                    from: 'posts',
+                    localField: '_id',
+                    foreignField: 'createdBy',
+                    as: 'posts'
+                }
+            },
+            { '$facet'    : {
+                    data: [ { $skip: parseInt(page) * parseInt(pageSize) }, { $limit: parseInt(pageSize) } ] // add projection here wish you re-shape the docs
+                } }
+
+        ]);
         if (users && users.length) {
-            res.status(200).send({success: true, msg: "fetch successfully", data: users, total: total.length});
+            res.status(200).send({success: true, msg: "fetch successfully", data: users[0]?.data, total: total.length});
         } else {
             res.status(404).send({success: false, msg: "users not found", data: [], total: null});
         }
     } catch (ex) {
-        res.send(ex)
+        res.status(400).send(ex)
     }
 };
 module.exports.VerifyOTP = async (req, res) => {
@@ -176,19 +195,44 @@ module.exports.Register = async (req, res) => {
 
     }
 };
-
-
 module.exports.getById = async (req, res) => {
     try {
-        const user = await User.findOne({_id: req.params.id}).lean();
         const visitor = await ViewProfile.findOne({viewerId: req.user._id,userId:req.params.id}).lean();
         if(!visitor && req.params.id !== req.user._id){
             new ViewProfile({viewerId:req.user._id,userId: req.params.id}).save();
         }
         let visitors = await ViewProfile.find({userId:req.params.id});
         let rating = Math.round(visitors.length / 5);
+        let user = await User.aggregate([
+            {
+                $match: {_id: mongoose.Types.ObjectId(req.params.id)}
+            },
+            {
+                $lookup:{
+                    from: 'posts',
+                    localField: '_id',
+                    foreignField: 'createdBy',
+                    as: 'posts'
+                }
+            }
+
+        ]);
+        let saved_post = [];
+        if(req.user?._id === req.params.id){
+            saved_post = await Post.aggregate([
+                {
+                    $match : {
+                        savedBy : {
+                            $elemMatch : {
+                                $eq :mongoose.Types.ObjectId(req.user._id)
+                            }
+                        },
+                    }
+                }
+            ]);
+        }
         if (user) {
-            res.status(200).send({success: true, msg: "User Found", data: {...user,rating:rating}});
+            res.status(200).send({success: true, msg: "User Found", data: {...user[0],rating:rating,savedPost:saved_post?.length}});
         } else {
             res.status(404).send({success: false, msg: "User Not Found", data: null});
         }
@@ -196,7 +240,6 @@ module.exports.getById = async (req, res) => {
         res.send(ex);
     }
 };
-
 module.exports.getProfileViewers = async (req, res) => {
     try {
         let user = await ViewProfile.aggregate([
@@ -229,8 +272,6 @@ module.exports.getProfileViewers = async (req, res) => {
         res.send(ex);
     }
 };
-
-
 module.exports.Update = async (req, res) => {
     try {
         let data = JSON.parse(req.body?.user);
@@ -248,7 +289,6 @@ module.exports.Update = async (req, res) => {
         res.send(ex);
     }
 };
-
 module.exports.forgotPassword = async (req, res) => {
     try {
         let user = await User.findOne({email:req.body.email})
@@ -284,7 +324,6 @@ if(user){
         res.send(ex);
     }
 };
-
 module.exports.resetPassword = async (req, res) => {
     try {
         let user = await User.findOneAndUpdate({_id:req.body.id},{
@@ -322,8 +361,6 @@ module.exports.resetPassword = async (req, res) => {
         res.send(ex);
     }
 };
-
-
 module.exports.Delete = async (req, res) => {
     try {
         if (!req.user._id) {
@@ -377,7 +414,6 @@ module.exports.generateAccessToken = async (req, res) => {
         })
         .catch((err) => res.status(400).json(err));
 }
-
 module.exports.blockUser = async (req, res) => {
     try {
         let { status,userId, blockUserId } =  req.body;
@@ -399,7 +435,6 @@ module.exports.blockUser = async (req, res) => {
         res.send(ex)
     }
 };
-
 module.exports.setPrivacy = async (req, res) => {
     try {
         let user = await User.findOne({_id: mongoose.Types.ObjectId(req.user._id)}).lean();
@@ -413,7 +448,6 @@ module.exports.setPrivacy = async (req, res) => {
         res.send(ex);
     }
 }
-
 module.exports.setVisitorTime = async (req, res) => {
     try {
         let {user, totalTime} = req.body;
@@ -449,7 +483,6 @@ module.exports.setVisitorTime = async (req, res) => {
         res.send(e);
     }
 }
-
 module.exports.getVisitorTime = async (req, res) => {
     try {
         let {_id} = req.user;
