@@ -288,6 +288,7 @@ module.exports.getSavedPost = async (req, res) => {
                 }
             },
         ]).sort({createdAt:-1})
+        console.log("getsacead", saved_post,req.user._id)
         if (saved_post) {
             return res.status(200).send({success: true, msg: "Success", data: saved_post});
         } else {

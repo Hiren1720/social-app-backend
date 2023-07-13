@@ -26,6 +26,7 @@ module.exports.getFollowers = async (req, res) => {
     try {
         let data = await getFollowerFollowing(req.params.id,'followers')
         if(data && data.length){
+            console.log("getFollowers", data[0])
             res.status(200).send({success: true, msg: "Followers fetch successfully", data: data[0]?.author_info});
         }
         else {

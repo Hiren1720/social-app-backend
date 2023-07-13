@@ -14,7 +14,7 @@ router.post("/postLike",auth, postLike);
 router.get("/likes",auth, getAllLikes);
 router.get("/getMentionPosts/:id",auth, getMentionPosts);
 router.post("/deletePost/:id", auth, deletePost);
-router.get("/savedPosts",auth, getSavedPost);
+router.get("/getAllSavedPost",auth, getSavedPost);
 router.post("/savePost",auth, savePost);
 router.post("/create",auth, createCommentOnPost);
 router.get("/comments",auth, getCommentsById);
