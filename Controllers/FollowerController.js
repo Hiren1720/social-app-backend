@@ -27,28 +27,18 @@ async function getFollowerFollowing(id,localField){
             let posts = await Post.find({createdBy: mongoose.Types.ObjectId(ele?._id)});
             return {...ele,posts}
         })
+        return await Promise.all(data);
     }
-    return data?.length && data[0]?.author_info ? await Promise.all(data):[];
+    else {
+        return null;
+    }
 }
 module.exports.getFollowers = async (req, res) => {
     try {
-        let data = await getFollowerFollowing(req.params.id,'followers')
+        let {id,type} = req.query;
+        let data = await getFollowerFollowing(id,type.toLowerCase());
         if(data && data.length){
             res.status(200).send({success: true, msg: "Followers fetch successfully", data: data});
-        }
-        else {
-            res.status(400).send({success: false, msg: "Something went wrong!", data: null});
-        }
-    } catch (ex) {
-
-    }
-};
-
-module.exports.getFollowings = async (req, res) => {
-    try {
-        let data = await getFollowerFollowing(req.params.id,'following')
-        if(data && data.length){
-            res.status(200).send({success: true, msg: "Followings fetch successfully", data: data});
         }
         else {
             res.status(400).send({success: false, msg: "Something went wrong!", data: null});
