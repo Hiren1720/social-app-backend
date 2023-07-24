@@ -1,7 +1,35 @@
 const Post = require("../Models/Post");
 const User = require("../Models/User");
 const mongoose = require("mongoose");
-
+const lookupForUsers = (from,localField,foreignField,as) => {
+    return {$lookup:{
+        from: from,
+        localField: localField,
+        foreignField: foreignField,
+        as: as
+    }}
+};
+const projectForPost = {
+    $project:{
+        author_info:{
+            name:1,
+            userName:1,
+            profile_url:1,
+            privacy:1,
+        },
+        createdBy:1,
+        content:1,
+        createdAt:1,
+        likes:1,
+        comments:1,
+        title:1,
+        hashTags:1,
+        device:1,
+        mentions:1,
+        imageUrl:1,
+        savedBy:1,
+    }
+};
 module.exports.createPost = async (req, res) => {
     try {
         let postData = JSON.parse(req.body?.post);
@@ -41,41 +69,20 @@ module.exports.updatePost = async (req, res) => {
 };
 module.exports.getAllPost = async (req, res) => {
     try {
+        const {page} = req.query;
         let post = await Post.aggregate([
-            {
-                $lookup:{
-                    from: 'users',
-                    localField: 'createdBy',
-                    foreignField: '_id',
-                    as: 'author_info'
-                }
-            },
-            {
-                $project:{
-                    author_info:{
-                        name:1,
-                        userName:1,
-                        profile_url:1
-                    },
-                    createdBy:1,
-                    content:1,
-                    createdAt:1,
-                    likes:1,
-                    comments:1,
-                    title:1,
-                    hashTags:1,
-                    device:1,
-                    mentions:1,
-                    imageUrl:1,
-                    savedBy:1,
-                }
-            },
+            {...lookupForUsers('users','createdBy','_id','author_info')},
+            {...projectForPost},
+            { '$facet'    : {
+                    data: [ { $skip: parseInt(page) * 2 }, { $limit: 2 } ],
+                    total:  [{ $count: "total" }]// add projection here wish you re-shape the docs
+                } }
         ]).sort({createdAt:-1})
-        if(post && post.length){
-            res.status(200).send({success: true, msg: "", data: post});
+        if(post && post.length && post[0]?.data?.length && post[0]?.total?.length){
+            res.status(200).send({success: true, msg: "", data: post[0]?.data,total: post[0]?.total[0]?.total});
         }
         else{
-            res.status(400).send({success: false, msg: "", data: null});
+            res.status(200).send({success: false, msg: "", data: []});
         }
     } catch (ex) {
         res.status(400).send({success: false, msg: "", error: ex});
@@ -134,14 +141,7 @@ module.exports.getAllLikes = async (req, res) => {
         let {id} = req?.query;
         let likes = await Post.aggregate([
             {$match:{_id: mongoose.Types.ObjectId(id)}},
-            {
-                $lookup: {
-                    from: "users",
-                    localField: "likes",
-                    foreignField: "_id",
-                    as: "likedUsers"
-                }
-            },
+            {...lookupForUsers('users','likes','_id','likedUsers')},
             {
                 $project: {
                     likedUsers: {
@@ -188,34 +188,8 @@ module.exports.getPost = async (req, res) => {
         let {postId} = req.query;
         let post = await Post.aggregate([
             {$match:{_id: mongoose.Types.ObjectId(postId)}},
-            {
-                $lookup:{
-                    from: 'users',
-                    localField: 'createdBy',
-                    foreignField: '_id',
-                    as: 'author_info'
-                }
-            },
-            {
-                $project:{
-                    author_info:{
-                        name:1,
-                        userName:1,
-                        profile_url:1
-                    },
-                    createdBy:1,
-                    content:1,
-                    createdAt:1,
-                    likes:1,
-                    comments:1,
-                    title:1,
-                    hashTags:1,
-                    device:1,
-                    mentions:1,
-                    imageUrl:1,
-                    savedBy:1,
-                }
-            },
+            {...lookupForUsers('users','createdBy','_id','author_info')},
+            {...projectForPost},
         ])
         if(post){
             res.status(200).send({success: true, msg: "Success", data: post});
@@ -251,7 +225,8 @@ module.exports.savePost = async (req, res) => {
 
 module.exports.getSavedPost = async (req, res) => {
     try {
-        let saved_post = await Post.aggregate([
+        const {page} = req.query;
+        let post = await Post.aggregate([
             {
                 $match : {
                     savedBy : {
@@ -261,37 +236,15 @@ module.exports.getSavedPost = async (req, res) => {
                     },
                 }
             },
-            {
-                $lookup:{
-                    from: 'users',
-                    localField: 'createdBy',
-                    foreignField: '_id',
-                    as: 'author_info'
-                }
-            },
-            {
-                $project:{
-                    author_info:{
-                        name:1,
-                        userName:1,
-                        profile_url:1
-                    },
-                    createdBy:1,
-                    content:1,
-                    createdAt:1,
-                    likes:1,
-                    comments:1,
-                    title:1,
-                    hashTags:1,
-                    device:1,
-                    mentions:1,
-                    imageUrl:1,
-                    savedBy:1,
-                }
-            },
+            {...lookupForUsers('users','createdBy','_id','author_info')},
+            {...projectForPost},
+            { '$facet'    : {
+                    data: [ { $skip: parseInt(page) * 2 }, { $limit: 2 } ],
+                    total:  [{ $count: "total" }]
+                } }
         ]).sort({createdAt:-1})
-        if (saved_post) {
-            return res.status(200).send({success: true, msg: "Success", data: saved_post});
+        if(post && post.length && post[0]?.data?.length && post[0]?.total?.length){
+            return res.status(200).send({success: true, msg: "Success", data: post[0]?.data,total:post[0]?.total[0]?.total});
         } else {
             return res.status(400).send({success: false, msg: "Failed", data: []});
         }
@@ -301,43 +254,22 @@ module.exports.getSavedPost = async (req, res) => {
 }
 module.exports.getPostByUserId = async (req,res) => {
     try {
-        let saved_post = await Post.aggregate([
+        const {page} = req.query;
+        let post = await Post.aggregate([
             {
                 $match : {
                     createdBy : mongoose.Types.ObjectId(req.query.id)
                 }
             },
-            {
-                $lookup:{
-                    from: 'users',
-                    localField: 'createdBy',
-                    foreignField: '_id',
-                    as: 'author_info'
-                }
-            },
-            {
-                $project:{
-                    author_info:{
-                        name:1,
-                        userName:1,
-                        profile_url:1
-                    },
-                    createdBy:1,
-                    content:1,
-                    createdAt:1,
-                    likes:1,
-                    comments:1,
-                    title:1,
-                    hashTags:1,
-                    device:1,
-                    mentions:1,
-                    imageUrl:1,
-                    savedBy:1,
-                }
-            },
+            {...lookupForUsers('users','createdBy','_id','author_info')},
+            {...projectForPost},
+            { '$facet'    : {
+                    data: [ { $skip: parseInt(page) * 2 }, { $limit: 2 } ],
+                    total:  [{ $count: "total" }]// add projection here wish you re-shape the docs
+                } }
         ]).sort({createdAt:-1})
-        if (saved_post) {
-            return res.status(200).send({success: true, msg: "Success", data: saved_post});
+        if(post && post.length && post[0]?.data?.length && post[0]?.total?.length){
+            return res.status(200).send({success: true, msg: "Success", data: post[0]?.data,total:post[0]?.total[0]?.total});
         } else {
             return res.status(400).send({success: false, msg: "Failed", data: []});
         }

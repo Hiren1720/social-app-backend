@@ -31,7 +31,7 @@ const User = new mongoose.Schema({
     followers:{
       type: Array,
     },
-    following:{
+    followings:{
       type:Array
     },
     blockedUsers:{
