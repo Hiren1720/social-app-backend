@@ -93,7 +93,7 @@ module.exports.VerifyOTP = async (req, res) => {
                 { followers: {$ne: [] } },
                 { $pull: { "followers": mongoose.Types.ObjectId(id) } });
             await User.updateMany(
-                { following: {$ne: [] } },
+                { followings: {$ne: [] } },
                 { $pull: { "following": mongoose.Types.ObjectId(id) }});
             await User.updateMany(
                 { blockedUsers: {$ne: [] } },
@@ -421,7 +421,7 @@ module.exports.blockUser = async (req, res) => {
             await User.findOneAndUpdate(
                 { _id: mongoose.Types.ObjectId(blockUserId)},
                 { $pull: { "followers": mongoose.Types.ObjectId(userId),"following": mongoose.Types.ObjectId(userId) } });
-            await User.findOneAndUpdate({_id:mongoose.Types.ObjectId(userId)}, { $push: { "blockedUsers": mongoose.Types.ObjectId(blockUserId) },$pull: { "followers": mongoose.Types.ObjectId(blockUserId),"following": mongoose.Types.ObjectId(blockUserId) }}).lean();
+            await User.findOneAndUpdate({_id:mongoose.Types.ObjectId(userId)}, { $push: { "blockedUsers": mongoose.Types.ObjectId(blockUserId) },$pull: { "followers": mongoose.Types.ObjectId(blockUserId),"followings": mongoose.Types.ObjectId(blockUserId) }}).lean();
             res.status(200).send({success: true, msg: "Success", data: ''});
         }
         else if(status === 'unBlock'){
