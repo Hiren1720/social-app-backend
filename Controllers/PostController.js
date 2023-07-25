@@ -1,5 +1,4 @@
 const Post = require("../Models/Post");
-const User = require("../Models/User");
 const mongoose = require("mongoose");
 const lookupForUsers = (from,localField,foreignField,as) => {
     return {$lookup:{
@@ -30,6 +29,21 @@ const projectForPost = {
         savedBy:1,
     }
 };
+const getPaginationObj = ({page,pageSize}) => {
+    return {'$facet': {
+            data: [ { $skip: parseInt(page) * parseInt(pageSize) }, { $limit: parseInt(pageSize) } ],
+            total:  [{ $count: "total" }]
+        }}
+};
+
+const postResponse = (post,res) => {
+    if(post && post.length && post[0]?.data?.length && post[0]?.total?.length){
+        res.status(200).send({success: true, msg: "", data: post[0]?.data,total: post[0]?.total[0]?.total});
+    }
+    else{
+        res.status(200).send({success: false, msg: "", data: [],total:null});
+    }
+}
 module.exports.createPost = async (req, res) => {
     try {
         let postData = JSON.parse(req.body?.post);
@@ -69,21 +83,12 @@ module.exports.updatePost = async (req, res) => {
 };
 module.exports.getAllPost = async (req, res) => {
     try {
-        const {page} = req.query;
         let post = await Post.aggregate([
             {...lookupForUsers('users','createdBy','_id','author_info')},
             {...projectForPost},
-            { '$facet'    : {
-                    data: [ { $skip: parseInt(page) * 2 }, { $limit: 2 } ],
-                    total:  [{ $count: "total" }]// add projection here wish you re-shape the docs
-                } }
+            {...getPaginationObj(req?.query)}
         ]).sort({createdAt:-1})
-        if(post && post.length && post[0]?.data?.length && post[0]?.total?.length){
-            res.status(200).send({success: true, msg: "", data: post[0]?.data,total: post[0]?.total[0]?.total});
-        }
-        else{
-            res.status(200).send({success: false, msg: "", data: []});
-        }
+        return postResponse(post,res);
     } catch (ex) {
         res.status(400).send({success: false, msg: "", error: ex});
     }
@@ -111,7 +116,7 @@ module.exports.getMentionPosts = async (req, res) => {
             res.status(200).send({success: true, msg: "", data: post});
         }
         else{
-            res.status(400).send({success: false, msg: "", data: null});
+            res.status(400).send({success: false, msg: "Something went wrong!", data: null});
         }
     } catch (ex) {
         res.status(400).send({success: false, msg: "", error: ex});
@@ -225,7 +230,6 @@ module.exports.savePost = async (req, res) => {
 
 module.exports.getSavedPost = async (req, res) => {
     try {
-        const {page} = req.query;
         let post = await Post.aggregate([
             {
                 $match : {
@@ -238,23 +242,15 @@ module.exports.getSavedPost = async (req, res) => {
             },
             {...lookupForUsers('users','createdBy','_id','author_info')},
             {...projectForPost},
-            { '$facet'    : {
-                    data: [ { $skip: parseInt(page) * 2 }, { $limit: 2 } ],
-                    total:  [{ $count: "total" }]
-                } }
+            {...getPaginationObj(req?.query)}
         ]).sort({createdAt:-1})
-        if(post && post.length && post[0]?.data?.length && post[0]?.total?.length){
-            return res.status(200).send({success: true, msg: "Success", data: post[0]?.data,total:post[0]?.total[0]?.total});
-        } else {
-            return res.status(400).send({success: false, msg: "Failed", data: []});
-        }
+        return postResponse(post,res);
     } catch (e) {
         res.send(e);
     }
 }
 module.exports.getPostByUserId = async (req,res) => {
     try {
-        const {page} = req.query;
         let post = await Post.aggregate([
             {
                 $match : {
@@ -263,16 +259,9 @@ module.exports.getPostByUserId = async (req,res) => {
             },
             {...lookupForUsers('users','createdBy','_id','author_info')},
             {...projectForPost},
-            { '$facet'    : {
-                    data: [ { $skip: parseInt(page) * 2 }, { $limit: 2 } ],
-                    total:  [{ $count: "total" }]// add projection here wish you re-shape the docs
-                } }
-        ]).sort({createdAt:-1})
-        if(post && post.length && post[0]?.data?.length && post[0]?.total?.length){
-            return res.status(200).send({success: true, msg: "Success", data: post[0]?.data,total:post[0]?.total[0]?.total});
-        } else {
-            return res.status(400).send({success: false, msg: "Failed", data: []});
-        }
+            {...getPaginationObj(req?.query)}
+        ]).sort({createdAt:-1});
+        return postResponse(post,res);
     } catch (e) {
         res.send(e);
     }
