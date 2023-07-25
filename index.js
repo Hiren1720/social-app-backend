@@ -56,9 +56,13 @@ io.on('connection',(socket)=>{
                 await Post.findOneAndUpdate({_id: document?.postId}, {$push: {"comments": document?._id}});
                 socket.broadcast.to(data?.id).emit("message", {
                     text: `${data?.userName} Commented on your post`,
+                    postId:document?.postId,
+                    commentId:document?._id
                 });
                 socket.emit("messageFrom", {
-                    text: 'Commented'
+                    text: 'Commented',
+                    postId:document?.postId,
+                    commentId:document?._id
                 });
             }
         });
