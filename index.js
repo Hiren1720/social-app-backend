@@ -1,3 +1,5 @@
+const {postLike} = require("./Controllers/PostController");
+
 const express = require("express");
 const cors = require("cors");
 const mongoose = require("mongoose");
@@ -54,18 +56,21 @@ io.on('connection',(socket)=>{
         comment.save(async function (error, document) {
             if (!error && document?.postId) {
                 await Post.findOneAndUpdate({_id: document?.postId}, {$push: {"comments": document?._id}});
-                socket.broadcast.to(data?.id).emit("message", {
+                socket.broadcast.to(data?.id).emit("comment", {
                     text: `${data?.userName} Commented on your post`,
-                    postId:document?.postId,
-                    commentId:document?._id
-                });
-                socket.emit("messageFrom", {
-                    text: 'Commented',
                     postId:document?.postId,
                     commentId:document?._id
                 });
             }
         });
+    })
+    socket.on('likeNotification',async (data)=>{
+        let like = await postLike(data);
+        if(like){
+            socket.broadcast.to(data.id).emit('like',{
+                text: `${data?.userName} Like your post`
+            })
+        }
     })
 })
 

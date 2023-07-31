@@ -11,7 +11,7 @@ router.post("/update",auth,upload.array('postImage'),updatePost);
 router.get("/getAllPost",auth, getAllPost);
 router.get("/getPost",auth, getPost);
 router.get("/getPostsByUserId",auth, getPostByUserId);
-router.post("/postLike",auth, postLike);
+// router.post("/postLike",auth, postLike);
 router.get("/likes",auth, getAllLikes);
 router.get("/getMentionPosts/:id",auth, getMentionPosts);
 router.post("/deletePost/:id", auth, deletePost);

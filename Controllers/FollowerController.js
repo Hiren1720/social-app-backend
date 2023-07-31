@@ -1,7 +1,7 @@
 const User = require("../Models/User");
 const Post = require("../Models/Post");
 const mongoose = require('mongoose');
-async function getFollowerFollowing(id,localField){
+async function getFollowerFollowing(id,localField,page,pageSize){
     let data = await User.aggregate([
         {$match:{_id:mongoose.Types.ObjectId(id)}},
         {
@@ -21,13 +21,18 @@ async function getFollowerFollowing(id,localField){
                 },
             }
         },
+        {'$facet': {
+                data: [ { $skip: parseInt(page) * parseInt(pageSize) }, { $limit: parseInt(pageSize) } ],
+                total:  [{ $count: "total" }]
+            }}
     ]);
-    if(data?.length && data[0]?.author_info){
-        data = data[0]?.author_info.map(async (ele)=> {
+    if(data?.length && data[0]?.data?.length && data[0]?.data[0]?.author_info?.length){
+        let followerData = data[0]?.data[0]?.author_info.map(async (ele)=> {
             let posts = await Post.find({createdBy: mongoose.Types.ObjectId(ele?._id)});
             return {...ele,posts}
-        })
-        return await Promise.all(data);
+        });
+        let followers = await Promise.all(followerData);
+        return {data:followers,total: data[0]?.total};
     }
     else {
         return null;
@@ -35,10 +40,10 @@ async function getFollowerFollowing(id,localField){
 }
 module.exports.getFollowers = async (req, res) => {
     try {
-        let {id,type} = req.query;
-        let data = await getFollowerFollowing(id,type.toLowerCase());
-        if(data && data.length){
-            res.status(200).send({success: true, msg: "Followers fetch successfully", data: data});
+        let {id,type,pageSize,page} = req.query;
+        let data = await getFollowerFollowing(id,type.toLowerCase(),page,pageSize);
+        if(data && data?.data?.length){
+            res.status(200).send({success: true, msg: "Followers fetch successfully", data: data?.data,total:data?.total[0]?.total});
         }
         else {
             res.status(400).send({success: false, msg: "Something went wrong!", data: null});
