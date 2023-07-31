@@ -86,8 +86,9 @@ module.exports.getAllPost = async (req, res) => {
         let post = await Post.aggregate([
             {...lookupForUsers('users','createdBy','_id','author_info')},
             {...projectForPost},
+            {$sort:{createdAt : -1}},
             {...getPaginationObj(req?.query)}
-        ]).sort({createdAt:-1})
+        ])
         return postResponse(post,res);
     } catch (ex) {
         res.status(400).send({success: false, msg: "", error: ex});
@@ -168,24 +169,23 @@ module.exports.getAllLikes = async (req, res) => {
         res.status(400).send({success: false, msg: "Something went wrong!", error: ex});
     }
 };
-module.exports.postLike = async (req, res) => {
+module.exports.postLike = async ({postId,likeBy}) => {
     try {
-        let {postId,likeBy} = req.body;
         let post = await Post.findOne({_id: postId}).lean();
         if (post) {
             if (post.likes.some(objId => objId.equals(likeBy))) {
                 await Post.findOneAndUpdate({_id: postId}, {$pull: {"likes": mongoose.Types.ObjectId(likeBy)}}).lean();
-                res.status(200).send({success: true, msg: "Disliked", data: 'requestUpdate'});
+                return false;
             } else {
                 await Post.findOneAndUpdate({_id: postId}, {$push: {"likes": mongoose.Types.ObjectId(likeBy)}}).lean();
-                res.status(200).send({success: true, msg: "Liked", data: 'requestUpdate'});
+                return true;
             }
         }
         else {
-            res.status(404).send({success: false, msg: "Post not found!", data: null});
+            return false;
         }
     } catch (ex) {
-
+        return false;
     }
 };
 module.exports.getPost = async (req, res) => {
@@ -242,6 +242,7 @@ module.exports.getSavedPost = async (req, res) => {
             },
             {...lookupForUsers('users','createdBy','_id','author_info')},
             {...projectForPost},
+            {$sort:{createdAt : -1}},
             {...getPaginationObj(req?.query)}
         ]).sort({createdAt:-1})
         return postResponse(post,res);
@@ -259,6 +260,7 @@ module.exports.getPostByUserId = async (req,res) => {
             },
             {...lookupForUsers('users','createdBy','_id','author_info')},
             {...projectForPost},
+            {$sort:{createdAt : -1}},
             {...getPaginationObj(req?.query)}
         ]).sort({createdAt:-1});
         return postResponse(post,res);
