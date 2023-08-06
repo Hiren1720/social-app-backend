@@ -505,3 +505,60 @@ module.exports.getVisitorTime = async (req, res) => {
         res.send(e);
     }
 }
+
+module.exports.updatePassword = async (req, res) => {
+    try {
+        let {_id} = req.user;
+        let {newPassword,oldPassword} = req.body;
+        let user = await User.findOne({_id:_id}).lean();
+        if(user.password && to_Decrypt(user.password) === oldPassword){
+            let data = await User.findOneAndUpdate(
+                {
+                    _id:mongoose.Types.ObjectId(_id)
+                },
+                {
+                    password: to_Encrypt(newPassword)
+                },
+                { new: true}
+            );
+            if (data) {
+                res.status(200).json({success: true, msg: "Password Updated Successfully.",data});
+            } else {
+                res.status(400).json({success: false, msg: "Something went wrong!", data: null});
+            }
+        } else {
+            res.status(200).json({success: false, msg: "Old password is incorrect.", data: null});
+        }
+
+    } catch (e) {
+        res.send(e);
+    }
+}
+
+module.exports.setUserStatus = async (req, res) => {
+    try {
+        let {_id,status} = req.body;
+        let user = await User.findOne({_id:mongoose.Types.ObjectId(_id)}).lean();
+        if(user){
+            let data = await User.findOneAndUpdate(
+                {
+                    _id:mongoose.Types.ObjectId(_id)
+                },
+                {
+                    status: status
+                },
+                { new: true}
+            );
+            if (data) {
+                res.status(200).json({success: true, msg: "Status Updated Successfully.",data});
+            } else {
+                res.status(400).json({success: false, msg: "Something went wrong!", data: null});
+            }
+        } else {
+            res.status(400).json({success: false, msg: "User not found.", data: null});
+        }
+
+    } catch (e) {
+        res.send(e);
+    }
+}
