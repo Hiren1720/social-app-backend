@@ -58,5 +58,5 @@ const passData = (data, event) => {
     }
 };
 
-module.exports = {passData, connectedClients, storageEngine, SendMail, minutesDiff};
+module.exports = {passData, connectedClients, SendMail, minutesDiff};
 
