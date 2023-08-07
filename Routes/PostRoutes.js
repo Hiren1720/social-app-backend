@@ -3,11 +3,11 @@ const { createPost, getAllPost, postLike,getAllLikes,getMentionPosts,deletePost,
 const { createCommentOnPost,getCommentsById } = require("../Controllers/CommentController");
 const router = require("express").Router();
 const auth = require("../Middleware/Auth");
-const multer = require('multer');
+// const multer = require('multer');
 const {storageEngine} = require('../Utils/helper');
-const upload = multer({ storage: storageEngine('Posts') });
-router.post("/create",auth,upload.array('postImage'),createPost);
-router.post("/update",auth,upload.array('postImage'),updatePost);
+// const upload = multer({ storage: storageEngine('Posts') });
+// router.post("/create",auth,upload.array('postImage'),createPost);
+// router.post("/update",auth,upload.array('postImage'),updatePost);
 router.get("/getAllPost",auth, getAllPost);
 router.get("/getPost",auth, getPost);
 router.get("/getPostsByUserId",auth, getPostByUserId);
