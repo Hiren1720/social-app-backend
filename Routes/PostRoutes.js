@@ -4,7 +4,7 @@ const { createCommentOnPost,getCommentsById } = require("../Controllers/CommentC
 const router = require("express").Router();
 const auth = require("../Middleware/Auth");
 // const multer = require('multer');
-const {storageEngine} = require('../Utils/helper');
+// const {storageEngine} = require('../Utils/helper');
 // const upload = multer({ storage: storageEngine('Posts') });
 // router.post("/create",auth,upload.array('postImage'),createPost);
 // router.post("/update",auth,upload.array('postImage'),updatePost);
