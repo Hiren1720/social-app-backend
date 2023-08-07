@@ -1,5 +1,6 @@
 const Post = require("../Models/Post");
 const mongoose = require("mongoose");
+const {passData} = require('../Utils/helper')
 const lookupForUsers = (from,localField,foreignField,as) => {
     return {$lookup:{
         from: from,
@@ -169,23 +170,27 @@ module.exports.getAllLikes = async (req, res) => {
         res.status(400).send({success: false, msg: "Something went wrong!", error: ex});
     }
 };
-module.exports.postLike = async ({postId,likeBy}) => {
+// module.exports.postLike = async ({postId,likeBy}) => {
+module.exports.postLike = async (req, res) => {
     try {
-        let post = await Post.findOne({_id: postId}).lean();
+        let data = req?.body;
+        let post = await Post.findOne({_id: mongoose.Types.ObjectId(data?.postId)}).lean();
         if (post) {
-            if (post.likes.some(objId => objId.equals(likeBy))) {
-                await Post.findOneAndUpdate({_id: postId}, {$pull: {"likes": mongoose.Types.ObjectId(likeBy)}}).lean();
-                return false;
+            if (post.likes.some(objId => objId.equals(data?.likeBy))) {
+                let newPost = await Post.findOneAndUpdate({_id: data?.postId}, {$pull: {"likes": mongoose.Types.ObjectId(data?.likeBy)}},{new:true}).lean();
+                passData(newPost,'likes');
+                res.status(200).send({success: true, msg: "disliked", data: document});
             } else {
-                await Post.findOneAndUpdate({_id: postId}, {$push: {"likes": mongoose.Types.ObjectId(likeBy)}}).lean();
-                return true;
+                let updatedPost = await Post.findOneAndUpdate({_id: data?.postId}, {$push: {"likes": mongoose.Types.ObjectId(data?.likeBy)}},{new:true}).lean();
+                passData(updatedPost,'likes');
+                res.status(200).send({success: true, msg: "liked", data: document});
             }
         }
         else {
-            return false;
+            res.status(400).send({success: false, msg: "Something went wrong!", data: null});
         }
     } catch (ex) {
-        return false;
+        res.send(ex);
     }
 };
 module.exports.getPost = async (req, res) => {

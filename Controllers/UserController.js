@@ -113,28 +113,36 @@ module.exports.VerifyOTP = async (req, res) => {
 };
 module.exports.Login = async (req, res) => {
     try {
-        const {email, password,name, type,provider,picture,email_verified} = req.body;
+        const {email, password, name, type, provider, picture, email_verified} = req.body;
         const user = await User.findOne({email: email}).lean();
-        if(provider && provider === 'google' && email_verified){
-            if(user){
-                const tokens = await generateTokens(user);
-                await User.findOneAndUpdate({email: email},{status:true})
-                res.status(200).send({success: true, token:tokens,data:user,provider:provider});
-            }
-            else {
-                let user = new User({email:email,name:name,userName:name,profile_url: picture,status:true})
+        if (provider && provider === 'google' && email_verified) {
+            if (user) {
+                if (user.deActivated) {
+                    res.status(400).send({success: false, msg: "Deactivated Account", data: null});
+                } else {
+                    const tokens = await generateTokens(user);
+                    await User.findOneAndUpdate({email: email}, {status: true});
+                    res.status(200).send({success: true, token: tokens, data: user, provider: provider});
+                }
+            } else {
+                let user = new User({email: email, name: name, userName: name, profile_url: picture, status: true,deActivated: false});
                 user.save(async function (error, document) {
                     if (error) {
                         res.status(400).send({success: false, msg: "Login failed", data: error,});
                     } else {
                         const tokens = await generateTokens(document);
-                        res.status(201).send({success: true, msg: "Successfully Login", token: tokens,data:document,provider:provider});
+                        res.status(201).send({
+                            success: true,
+                            msg: "Successfully Login",
+                            token: tokens,
+                            data: document,
+                            provider: provider
+                        });
                     }
                 });
             }
-        }
-        else if (user && !provider) {
-            if (user.password && to_Decrypt(user.password) === password) {
+        } else if (user && !provider) {
+            if (user.password && to_Decrypt(user.password) === password && !user.deActivated) {
                 let otp = generateOTP();
                 fs.writeFileSync('Utils/otp.txt', `${otp}|${new Date()}`);
                 await SendMail({
@@ -154,7 +162,9 @@ module.exports.Login = async (req, res) => {
                               </div>
                             </div>`,
                 })
-                res.status(200).send({success: true,  message: 'Verify OTP'});
+                res.status(200).send({success: true, message: 'Verify OTP'});
+            } else if (user.password && to_Decrypt(user.password) === password && user.deActivated) {
+                res.status(404).send({error: "Sorry! your account is deactivated."});
             } else {
                 res.status(404).send({error: "password can't match"});
             }
@@ -162,7 +172,7 @@ module.exports.Login = async (req, res) => {
             res.status(404).send({error: "user not found"});
         }
     } catch (ex) {
-        res.status(400).send({error:ex})
+        res.status(400).send({error: ex})
     }
 };
 module.exports.LogOut = async (req, res) => {
@@ -176,13 +186,13 @@ module.exports.LogOut = async (req, res) => {
 };
 module.exports.Register = async (req, res) => {
     try {
-        let data = JSON.parse(req.body?.user)
+        let data = JSON.parse(req.body?.user);
         const {email, password} = data;
         const user = await User.findOne({email}).lean();
         if (user) {
-            return res.status(409).send({msg: "User already exists", status: false});
+            return res.status(409).send({msg: "User already exists", status: false, deActivated: false});
         } else {
-            let user = new User({...data, password: to_Encrypt(password),profile_url: `/Profiles/${req?.file?.filename}`})
+            let user = new User({...data, password: to_Encrypt(password), profile_url: `/Profiles/${req?.file?.filename}`})
             user.save(function (error, document) {
                 if (error) {
                     res.status(400).send({success: false, msg: "Registration failed", data: error});
@@ -197,18 +207,18 @@ module.exports.Register = async (req, res) => {
 };
 module.exports.getById = async (req, res) => {
     try {
-        const visitor = await ViewProfile.findOne({viewerId: req.user._id,userId:req.params.id}).lean();
-        if(!visitor && req.params.id !== req.user._id){
-            new ViewProfile({viewerId:req.user._id,userId: req.params.id}).save();
+        const visitor = await ViewProfile.findOne({viewerId: req.user._id, userId: req.params.id}).lean();
+        if (!visitor && req.params.id !== req.user._id) {
+            new ViewProfile({viewerId: req.user._id, userId: req.params.id}).save();
         }
-        let visitors = await ViewProfile.find({userId:req.params.id});
+        let visitors = await ViewProfile.find({userId: req.params.id});
         let rating = Math.round(visitors.length / 5);
         let user = await User.aggregate([
             {
                 $match: {_id: mongoose.Types.ObjectId(req.params.id)}
             },
             {
-                $lookup:{
+                $lookup: {
                     from: 'posts',
                     localField: '_id',
                     foreignField: 'createdBy',
@@ -218,13 +228,13 @@ module.exports.getById = async (req, res) => {
 
         ]);
         let saved_post = [];
-        if(req.user?._id === req.params.id){
+        if (req.user?._id === req.params.id) {
             saved_post = await Post.aggregate([
                 {
-                    $match : {
-                        savedBy : {
-                            $elemMatch : {
-                                $eq :mongoose.Types.ObjectId(req.user._id)
+                    $match: {
+                        savedBy: {
+                            $elemMatch: {
+                                $eq: mongoose.Types.ObjectId(req.user._id)
                             }
                         },
                     }
@@ -232,14 +242,18 @@ module.exports.getById = async (req, res) => {
             ]);
         }
         if (user) {
-            res.status(200).send({success: true, msg: "User Found", data: {...user[0],rating:rating,savedPost:saved_post?.length}});
+            res.status(200).send({
+                success: true,
+                msg: "User Found",
+                data: {...user[0], rating: rating, savedPost: saved_post?.length}
+            });
         } else {
             res.status(404).send({success: false, msg: "User Not Found", data: null});
         }
     } catch (ex) {
         res.send(ex);
     }
-};
+}
 module.exports.getProfileViewers = async (req, res) => {
     try {
         let user = await ViewProfile.aggregate([
@@ -561,4 +575,26 @@ module.exports.setUserStatus = async (req, res) => {
     } catch (e) {
         res.send(e);
     }
-}
+};
+module.exports.deActivateAccount = async (req, res) => {
+    try {
+        let {email, password, description} = req.body;
+        let data = await User.findOne({email: email}).lean();
+        console.log("daat", data)
+        if (data) {
+            if (to_Decrypt(data.password) === password) {
+                let user = await User.findOneAndUpdate({_id: mongoose.Types.ObjectId(data?._id)}, {
+                    deActivated: true,
+                    deActivateDescription: description
+                }, {new: true});
+                res.status(200).json({success: true, msg: "Account Deactivated successfully.", data: user});
+            } else {
+                res.status(400).json({success: false, msg: "Password not matched.", data: null});
+            }
+        } else {
+            res.status(404).json({success: false, msg: "Account not found for this email id.", data: null});
+        }
+    } catch (e) {
+        res.send(e);
+    }
+};

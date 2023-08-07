@@ -1,7 +1,7 @@
 const Comment = require("../Models/Comment");
 const Post = require("../Models/Post");
 const mongoose = require("mongoose");
-
+const {passData} = require('../Utils/helper')
 module.exports.createCommentOnPost = async (req, res) => {
     try {
         let comment = new Comment(req.body);
@@ -12,6 +12,8 @@ module.exports.createCommentOnPost = async (req, res) => {
                 if(document?.postId){
                     await Post.findOneAndUpdate({_id:document?.postId}, { $push: { "comments": document?._id } }).lean();
                 }
+                passData(document,`comment${req.body.id}`);
+                passData(document,`comment`);
                 res.status(201).send({success: true, msg: "Comment Added", data: document});
             }
         });
