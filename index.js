@@ -4,7 +4,6 @@ const express = require("express");
 const cors = require("cors");
 const mongoose = require("mongoose");
 const http = require("http");
-const socket= require('socket.io');
 const UserRoutes = require("./Routes/UserRoutes");
 const PostRoutes = require("./Routes/PostRoutes");
 const RequestRoutes = require("./Routes/RequestRoutes");
@@ -54,8 +53,6 @@ const handleSSE = (req,res) => {
 
 
 let server = http.createServer(app);
-const sockets = {};
-app.set('sockets', sockets);
 app.get('/stream', handleSSE)
 app.use("/api/user", UserRoutes);
 app.use("/api/request", RequestRoutes);
@@ -63,36 +60,6 @@ app.use("/api/follower", FollowersRoute);
 app.use("/api/post", PostRoutes);
 app.use("/api/admin", AdminRoutes);
 app.use(express.static('Photos'));
-
-const io = socket(server,{ origins: '*:*' });
-io.on('connection',(socket)=>{
-
-    socket.on('joinUserId',(userId)=>{
-        socket.join(userId);
-    })
-
-//     socket.on('commentNotification',(data)=>{
-//         let comment = new Comment({content:data?.content,createdBy:data?.createdBy,postId:data?.postId});
-//         comment.save(async function (error, document) {
-//             if (!error && document?.postId) {
-//                 await Post.findOneAndUpdate({_id: document?.postId}, {$push: {"comments": document?._id}});
-//                 socket.broadcast.to(data?.id).emit("comment", {
-//                     text: `${data?.userName} Commented on your post`,
-//                     postId:document?.postId,
-//                     commentId:document?._id
-//                 });
-//             }
-//         });
-//     })
-//     socket.on('likeNotification',async (data)=>{
-//         let like = await postLike(data);
-//         if(like){
-//             socket.broadcast.to(data.id).emit('like',{
-//                 text: `${data?.userName} Like your post`
-//             })
-//         }
-//     })
-})
 
 server.listen(port, () => {
     console.log(`server is working on http://localhost:${port}`)
