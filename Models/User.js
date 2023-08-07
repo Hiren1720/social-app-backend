@@ -51,6 +51,12 @@ const User = new mongoose.Schema({
     },
     privacy:{
         type: Boolean
+    },
+    deActivated:{
+        type: Boolean
+    },
+    deActivateDescription:{
+        type:String
     }
 },{
     timestamps: true,
