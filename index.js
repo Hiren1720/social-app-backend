@@ -15,7 +15,7 @@ const {connectedClients} = require('./Utils/helper')
 const app = express();
 require("dotenv").config();
 
-app.use(cors());
+app.use(cors({allowedHeaders:true}));
 app.use(express.json());
 app.use(express());
 
@@ -53,6 +53,13 @@ const handleSSE = (req,res) => {
 
 
 let server = http.createServer(app);
+app.use(function (req, res, next) {
+    res.header('Access-Control-Allow-Origin', "http://localhost:3000");//https://social-v1-app.vercel.app/login
+    res.header('Access-Control-Allow-Headers', true);
+    res.header('Access-Control-Allow-Credentials', true);
+    res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, PATCH, DELETE');
+    next();
+});
 app.get('/stream', handleSSE)
 app.use("/api/user", UserRoutes);
 app.use("/api/request", RequestRoutes);
