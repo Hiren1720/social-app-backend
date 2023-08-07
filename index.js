@@ -15,7 +15,7 @@ const {connectedClients} = require('./Utils/helper')
 const app = express();
 require("dotenv").config();
 const corsOptions = {
-    origin: [ 'https://social-v1-app.vercel.app/', 'http://localhost:3000/' ],
+    origin: [ 'https://social-v1-app.vercel.app', 'http://localhost:3000' ],
     credentials: true,
     //access-control-allow-credentials:true
     optionSuccessStatus: 200
