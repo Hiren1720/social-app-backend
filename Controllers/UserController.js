@@ -6,7 +6,6 @@ const Request = require("../Models/Requests");
 const mongoose = require("mongoose");
 const ViewProfile = require("../Models/ViewProfile");
 const jwt = require('jsonwebtoken');
-const fs = require("fs");
 const {to_Encrypt, to_Decrypt} = require("../Utils/encryptDecrypt");
 const {generateTokens, verifyRefreshToken} = require('../Utils/generateTokens');
 const {minutesDiff, SendMail} = require('../Utils/helper');
@@ -57,11 +56,8 @@ module.exports.VerifyOTP = async (req, res) => {
     try {
         const {otp, email,isDelete,id} = req.body;
         const user = await User.findOne({email: email}).lean();
-        let data = fs.readFileSync('Utils/otp.txt').toString()
-        let verify = data.split('|')[0];
-        let date = data.split('|')[1];
-        let min = minutesDiff(new Date(date), new Date())
-        if (verify === otp && min < 5 && !isDelete) {
+        let min = minutesDiff(new Date(user?.updatedAt), new Date())
+        if (user?.otp === otp && min < 5 && !isDelete) {
             const tokens = await generateTokens(user);
             await User.findOneAndUpdate({email:email},{status:true})
             await SendMail({
@@ -80,9 +76,8 @@ module.exports.VerifyOTP = async (req, res) => {
                               </div>
                             </div>`,
             });
-            fs.unlinkSync('Utils/otp.txt');
             res.status(200).send({success: true, token: tokens,data:user});
-        } else if(verify === otp && min < 5 && isDelete){
+        } else if(user?.otp === otp && min < 5 && isDelete){
             let user = await User.deleteOne({_id: mongoose.Types.ObjectId(id)})
             await Post.deleteMany({createdBy: mongoose.Types.ObjectId(id)});
             await Comment.deleteMany({createdBy: mongoose.Types.ObjectId(id)});
@@ -99,7 +94,6 @@ module.exports.VerifyOTP = async (req, res) => {
                 { blockedUsers: {$ne: [] } },
                 { $pull: { "blockedUsers": mongoose.Types.ObjectId(id) }});
             if (user && user?.acknowledged) {
-                fs.unlinkSync('Utils/otp.txt');
                 return res.status(200).send({success: true, msg: "Deleted"});
             } else {
                 return res.status(400).send({success: false, msg: "failed",});
@@ -144,7 +138,7 @@ module.exports.Login = async (req, res) => {
         } else if (user && !provider) {
             if (user.password && to_Decrypt(user.password) === password && !user.deActivated) {
                 let otp = generateOTP();
-                fs.writeFileSync('Utils/otp.txt', `${otp}|${new Date()}`);
+                await User.findOneAndUpdate({email: user?.email},{otp:otp})
                 await SendMail({
                     user,
                     subject: "Verify your account with OTP",
@@ -383,7 +377,7 @@ module.exports.Delete = async (req, res) => {
             let user = await User.findOne({_id: req.user._id})
             if (user) {
                 let otp = generateOTP();
-                fs.writeFileSync('Utils/otp.txt', `${otp}|${new Date()}`);
+                await User.findOneAndUpdate({email: user?.email},{otp:otp})
                 await SendMail({
                     user,
                     subject: "Verify your account with OTP",

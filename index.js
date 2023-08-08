@@ -53,7 +53,7 @@ const handleSSE = (req,res) => {
     connectedClients.set(clientId, newClient);
     req.on('close', () => {
         connectedClients.delete(clientId);
-        console.log('closed')
+        console.log('SSE closed')
     });
 }
 

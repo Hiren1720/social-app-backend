@@ -57,6 +57,9 @@ const User = new mongoose.Schema({
     },
     deActivateDescription:{
         type:String
+    },
+    otp:{
+        type: String
     }
 },{
     timestamps: true,
