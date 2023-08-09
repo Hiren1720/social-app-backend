@@ -12,7 +12,7 @@ module.exports.createCommentOnPost = async (req, res) => {
                 if(document?.postId){
                     await Post.findOneAndUpdate({_id:document?.postId}, { $push: { "comments": document?._id } }).lean();
                 }
-                passData(document,`comment${req.body.id}`);
+                passData(`${req.body?.userName} Commented on your post`,`comment ${req.body.id}`);
                 passData(document,`comment`);
                 res.status(201).send({success: true, msg: "Comment Added", data: document});
             }

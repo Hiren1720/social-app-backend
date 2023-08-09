@@ -53,6 +53,7 @@ module.exports.createPost = async (req, res) => {
             if (error) {
                 res.status(400).send({success: false, msg: "Request Failed", data: error});
             } else {
+                passData('Please Refresh and See new post ', 'post')
                 res.status(201).send({success: true, msg: "Post Created", data: document});
             }
         });
@@ -183,6 +184,7 @@ module.exports.postLike = async (req, res) => {
             } else {
                 let updatedPost = await Post.findOneAndUpdate({_id: data?.postId}, {$push: {"likes": mongoose.Types.ObjectId(data?.likeBy)}},{new:true}).lean();
                 passData(updatedPost,'likes');
+                passData(`${req.body?.userName} Like your post`,`likes ${req.body.id}`);
                 res.status(200).send({success: true, msg: "liked", data: document});
             }
         }
