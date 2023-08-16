@@ -47,12 +47,12 @@ const postResponse = (post,res) => {
 }
 module.exports.createPost = async (req, res) => {
     try {
-        let postData = JSON.parse(req.body?.post);
-        let post = new Post({...postData,imageUrl: req?.files?.length > 0 ? req?.files.map(ele => {return {type:ele.mimetype.split('/')[0],url:`/Posts/${ele?.filename}`}}):[]});
+        let post = new Post(req.body);
         post.save(function (error, document) {
             if (error) {
                 res.status(400).send({success: false, msg: "Request Failed", data: error});
             } else {
+                // passData('Please Refresh and See new post ', 'post')
                 res.status(201).send({success: true, msg: "Post Created", data: document});
             }
         });

@@ -1,5 +1,3 @@
-const {postLike} = require("./Controllers/PostController");
-
 const express = require("express");
 const cors = require("cors");
 const mongoose = require("mongoose");
@@ -9,15 +7,12 @@ const PostRoutes = require("./Routes/PostRoutes");
 const RequestRoutes = require("./Routes/RequestRoutes");
 const FollowersRoute = require("./Routes/FollowersRoute");
 const AdminRoutes = require("./Routes/AdminRoutes");
-const Comment = require("./Models/Comment");
-const Post = require("./Models/Post");
 const {connectedClients} = require('./Utils/helper')
 const app = express();
 require("dotenv").config();
 const corsOptions = {
-    origin: [ 'https://social-v1-app.vercel.app/', 'http://localhost:3000/' ],
+    origin: [ 'https://social-v1-app.vercel.app', 'http://localhost:3000' ],
     credentials: true,
-    //access-control-allow-credentials:true
     optionSuccessStatus: 200
 
 }
@@ -25,7 +20,6 @@ app.use(cors(corsOptions));
 app.use(express.json());
 app.use(express());
 
-// app.use(upload.array());
 // app.use(express.static('public'));
 const port = process.env.PORT || 8080
 mongoose.set('strictQuery', false);
@@ -44,7 +38,7 @@ const handleSSE = (req,res) => {
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache');
     res.setHeader('Connection', 'keep-alive');
-    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Origin', 'https://social-v1-app.vercel.app');
     const clientId = Date.now();
     const newClient = {
         id: clientId,
@@ -53,7 +47,7 @@ const handleSSE = (req,res) => {
     connectedClients.set(clientId, newClient);
     req.on('close', () => {
         connectedClients.delete(clientId);
-        console.log('closed')
+        console.log('SSE closed')
     });
 }
 
@@ -72,7 +66,6 @@ app.use("/api/request", RequestRoutes);
 app.use("/api/follower", FollowersRoute);
 app.use("/api/post", PostRoutes);
 app.use("/api/admin", AdminRoutes);
-app.use(express.static('Photos'));
 
 server.listen(port, () => {
     console.log(`server is working on http://localhost:${port}`)
