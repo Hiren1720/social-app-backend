@@ -39,12 +39,14 @@ module.exports.GetAll = async (req, res) => {
                 }
             },
             { '$facet'    : {
-                    data: [ { $skip: parseInt(page) * parseInt(pageSize) }, { $limit: parseInt(pageSize) } ] // add projection here wish you re-shape the docs
+                    data: [ { $skip: parseInt(page) * parseInt(pageSize) }, { $limit: parseInt(pageSize) } ], totalCount: [
+                        { $count: "count" }
+                    ]
                 } }
 
         ]);
         if (users && users.length) {
-            res.status(200).send({success: true, msg: "fetch successfully", data: users[0]?.data, total: total.length});
+            res.status(200).send({success: true, msg: "fetch successfully", data: users[0]?.data, total: users[0]?.totalCount[0]?.count});
         } else {
             res.status(404).send({success: false, msg: "users not found", data: [], total: null});
         }
@@ -180,13 +182,16 @@ module.exports.LogOut = async (req, res) => {
 };
 module.exports.Register = async (req, res) => {
     try {
-        let data = JSON.parse(req.body?.user);
+        // let data = JSON.parse(req.body?.user);
+        let data = req.body;
         const {email, password} = data;
         const user = await User.findOne({email}).lean();
         if (user) {
             return res.status(409).send({msg: "User already exists", status: false, deActivated: false});
         } else {
-            let user = new User({...data, password: to_Encrypt(password), profile_url: `/Profiles/${req?.file?.filename}`})
+            // let user = new User({...data, password: to_Encrypt(password), profile_url: `/Profiles/${req?.file?.filename}`})
+            let user = new User({...data, password: to_Encrypt(password)})
+
             user.save(function (error, document) {
                 if (error) {
                     res.status(400).send({success: false, msg: "Registration failed", data: error});
@@ -282,11 +287,12 @@ module.exports.getProfileViewers = async (req, res) => {
 };
 module.exports.Update = async (req, res) => {
     try {
-        let data = JSON.parse(req.body?.user);
-        if(!req?.body?.profile)
-        {
-            data.profile_url= `/Profiles/${req?.file?.filename}`
-        }
+        // let data = JSON.parse(req.body?.user);
+        let data = req.body;
+        // if(!req?.body?.profile)
+        // {
+        //     data.profile_url= `/Profiles/${req?.file?.filename}`
+        // }
         let userData = await User.findOneAndUpdate({_id:data._id}, data).lean();
         if (userData) {
             return res.status(201).send({success: true, msg: "User Updated Successfully",data:data});
