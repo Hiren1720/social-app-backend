@@ -7,7 +7,9 @@ const PostRoutes = require("./Routes/PostRoutes");
 const RequestRoutes = require("./Routes/RequestRoutes");
 const FollowersRoute = require("./Routes/FollowersRoute");
 const AdminRoutes = require("./Routes/AdminRoutes");
-const {connectedClients} = require('./Utils/helper')
+const {connectedClients} = require('./Utils/helper');
+const {postLike} = require('./Controllers/PostController');
+const Ably = require('ably');
 const app = express();
 require("dotenv").config();
 const corsOptions = {
@@ -34,7 +36,6 @@ mongoose.connect(process.env.MONGO_DB_URL, {
     });
 
 const handleSSE = (req,res) => {
-
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache');
     res.setHeader('Connection', 'keep-alive');
@@ -51,15 +52,7 @@ const handleSSE = (req,res) => {
     });
 }
 
-
 let server = http.createServer(app);
-// app.use(function (req, res, next) {
-//     res.header('Access-Control-Allow-Origin', "http://localhost:3000");//https://social-v1-app.vercel.app/login
-//     res.header('Access-Control-Allow-Headers', true);
-//     res.header('Access-Control-Allow-Credentials', true);
-//     res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, PATCH, DELETE');
-//     next();
-// });
 app.get('/stream', handleSSE)
 app.use("/api/user", UserRoutes);
 app.use("/api/request", RequestRoutes);
@@ -70,4 +63,45 @@ app.use("/api/admin", AdminRoutes);
 server.listen(port, () => {
     console.log(`server is working on http://localhost:${port}`)
 })
+const ably = new Ably.Realtime.Promise({
+    authUrl: "https://ably.com/ably-auth/token/docs",
+});
+const ablyRealtimePromiseExample = async () => {
+    // const ably = new Ably.Realtime.Promise('eyJ0eXAiOiJKV1QiLCJ2ZXJzaW9uIjoxLCJhbGciOiJIUzI1NiJ9.eyJqdGkiOiJmMzEyNzlkMy03OTM1LTRhYzgtOGFkMy05M2UwMDNlYjFhNWMiLCJpc3MiOiJhYmx5LmNvbSIsImlhdCI6MTY5MjI5MTA4MSwic3ViIjo0MzQ4Mn0.od30Uh34SboEs1FpmrSOvy9q4sV0muiKMyZzrL-B2ns');
+    // setInterval(async ()=> {
+        await ably.connection.once('connected');
+    // },2000)
+    // await ably.connection.once('connected');
+    console.log('Connected to Ably!');
+
+    // get the channel to subscribe to
+    const channel = ably.channels.get("social-app");
+
+    /*
+      Subscribe to a channel.
+      The promise resolves when the channel is attached
+      (and resolves synchronously if the channel is already attached).
+    */
+    await channel.subscribe("like", async (message) => {
+        const data = await postLike(message.data)
+        await channel.publish('liked',{...data?.data,userName:message?.data?.userName,likedBy:message.data?.likeBy,isLiked: data?.msg === 'liked'})
+        // ably.close();
+        // await ably.connection.once('connected');
+    });
+
+    // Publish a message or two
+    // await channel.publish("greeting", "hello!");
+    // await channel.publish("greeting", "hello!");
+    // await channel.publish("greeting", "hello!");
+
+    // wait 2s to receive all messages and then shut down
+    // setTimeout(() => {
+    //     console.log("Closing connection...");
+    //     ably.close();
+    //     console.log("Closed the connection to Ably.");
+    // }, 2000);
+};
+
+// call wrapper
+ablyRealtimePromiseExample();
 

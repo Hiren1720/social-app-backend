@@ -173,27 +173,50 @@ module.exports.getAllLikes = async (req, res) => {
         res.status(400).send({success: false, msg: "Something went wrong!", error: ex});
     }
 };
-// module.exports.postLike = async ({postId,likeBy}) => {
-module.exports.postLike = async (req, res) => {
+// module.exports.postLike = async (req, res) => {
+//     try {
+//         let data = req?.body;
+//         let post = await Post.findOne({_id: mongoose.Types.ObjectId(data?.postId)}).lean();
+//         if (post) {
+//             if (post.likes.some(objId => objId.equals(data?.likeBy))) {
+//                 let newPost = await Post.findOneAndUpdate({_id: data?.postId}, {$pull: {"likes": mongoose.Types.ObjectId(data?.likeBy)}},{new:true}).lean();
+//                 passData(newPost,'likes');
+//                 res.status(200).send({success: true, msg: "disliked", data: document});
+//             } else {
+//                 let updatedPost = await Post.findOneAndUpdate({_id: data?.postId}, {$push: {"likes": mongoose.Types.ObjectId(data?.likeBy)}},{new:true}).lean();
+//                 passData(updatedPost,'likes');
+//                 res.status(200).send({success: true, msg: "liked", data: document});
+//             }
+//         }
+//         else {
+//             res.status(400).send({success: false, msg: "Something went wrong!", data: null});
+//         }
+//     } catch (ex) {
+//         res.send(ex);
+//     }
+// };
+module.exports.postLike = async (data) => {
     try {
-        let data = req?.body;
         let post = await Post.findOne({_id: mongoose.Types.ObjectId(data?.postId)}).lean();
         if (post) {
             if (post.likes.some(objId => objId.equals(data?.likeBy))) {
                 let newPost = await Post.findOneAndUpdate({_id: data?.postId}, {$pull: {"likes": mongoose.Types.ObjectId(data?.likeBy)}},{new:true}).lean();
-                passData(newPost,'likes');
-                res.status(200).send({success: true, msg: "disliked", data: document});
+                // passData(newPost,'likes');
+                return {success: true, msg: "disliked", data: newPost}
+                // res.status(200).send({success: true, msg: "disliked", data: document});
             } else {
                 let updatedPost = await Post.findOneAndUpdate({_id: data?.postId}, {$push: {"likes": mongoose.Types.ObjectId(data?.likeBy)}},{new:true}).lean();
-                passData(updatedPost,'likes');
-                res.status(200).send({success: true, msg: "liked", data: document});
+                // passData(updatedPost,'likes');
+                return {success: true, msg: "liked", data: updatedPost}
+                // res.status(200).send({success: true, msg: "liked", data: document});
             }
         }
         else {
-            res.status(400).send({success: false, msg: "Something went wrong!", data: null});
+            return {success: false, msg: "Something went wrong!", data: null}
+            // res.status(400).send({success: false, msg: "Something went wrong!", data: null});
         }
     } catch (ex) {
-        res.send(ex);
+        // res.send(ex);
     }
 };
 module.exports.getPost = async (req, res) => {
