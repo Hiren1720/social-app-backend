@@ -12,7 +12,7 @@ const {minutesDiff, SendMail} = require('../Utils/helper');
 const {generateOTP} = require('../Utils/generateOTP');
 require("dotenv").config();
 const secret_key = process.env.SECRET_KEY;
-const passwordResetUrl = process.env.PASSWORD_RESET_URL;
+const passwordResetUrl = process.env.REACT_APP_URL;
 
 module.exports.GetAll = async (req, res) => {
     try {
@@ -318,7 +318,7 @@ if(user){
                                 </div>
                                 <p style="font-size:1.1em">Hi ${user?.name},</p>
                                 <p>Sorry to hear you’re having trouble logging into Social App. We got a message that you forgot your password. If this was you, you can reset your password now.</p>
-                                <a href="${passwordResetUrl}/${user?._id}" target="_blank" style="background: #00466a;margin: 0 auto;width: max-content;padding: 10px 10px;color: #fff;border-radius: 4px;text-decoration: none">Reset your Password</a>
+                                <a href="${passwordResetUrl}/reset-password/${user?._id}" target="_blank" style="background: #00466a;margin: 0 auto;width: max-content;padding: 10px 10px;color: #fff;border-radius: 4px;text-decoration: none">Reset your Password</a>
                                 <p style="font-size:0.9em;">Regards,<br />Social App</p>
                                 <hr style="border:none;border-top:1px solid #eee" />
                               </div>
