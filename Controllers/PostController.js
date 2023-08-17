@@ -64,15 +64,18 @@ module.exports.createPost = async (req, res) => {
 
 module.exports.updatePost = async (req, res) => {
     try {
-        let data = JSON.parse(req.body?.post);
+        // let data = JSON.parse(req.body?.post);
+        let data = req.body;
+        console.log("Req", req.body, "data---------------", data)
         let image = [];
-        if(req?.files?.length > 0){
-             image = req?.files.map(ele => {return {type:ele.mimetype.split('/')[0],url:`/Posts/${ele?.filename}`}})
-        }
-        const filteredArray = data?.imageUrl.filter(obj => Object.keys(obj).length !== 0);
-        image.push(...filteredArray);
+        // if(req?.files?.length > 0){
+        //      image = req?.files.map(ele => {return {type:ele.mimetype.split('/')[0],url:`/Posts/${ele?.filename}`}})
+        // }
+        // const filteredArray = data?.imageUrl.filter(obj => Object.keys(obj).length !== 0);
+        // image.push(...filteredArray);
 
-        let postData = await Post.findOneAndUpdate({_id:data._id}, {...data,imageUrl:[...image]}).lean();
+        // let postData = await Post.findOneAndUpdate({_id:data._id}, {...data,imageUrl:[...image]}).lean();
+        let postData = await Post.findOneAndUpdate({_id:data._id}, {...data}).lean();
         if (postData) {
             return res.status(201).send({success: true, msg: "Post Updated Successfully",data:'document'});
         } else {
