@@ -63,12 +63,7 @@ app.use("/api/admin", AdminRoutes);
 server.listen(port, () => {
     console.log(`server is working on http://localhost:${port}`)
 })
-const ably = new Ably.Realtime.Promise({
-    authUrl: "https://ably.com/ably-auth/token/docs",
-    origin: [ 'https://social-v1-app.vercel.app', 'http://localhost:3000' ,'https://api.cloudinary.com/v1_1/'],
-    credentials: true,
-    optionSuccessStatus: 200
-});
+const ably = new Ably.Realtime.Promise({key:"PbeIpA.eZ-G_A:pz_TrYgruXMbVoNloJZiCill0ek7pJpw3nV3zEnueJ4"});
 const ablyRealtimePromiseExample = async () => {
     // const ably = new Ably.Realtime.Promise('eyJ0eXAiOiJKV1QiLCJ2ZXJzaW9uIjoxLCJhbGciOiJIUzI1NiJ9.eyJqdGkiOiJmMzEyNzlkMy03OTM1LTRhYzgtOGFkMy05M2UwMDNlYjFhNWMiLCJpc3MiOiJhYmx5LmNvbSIsImlhdCI6MTY5MjI5MTA4MSwic3ViIjo0MzQ4Mn0.od30Uh34SboEs1FpmrSOvy9q4sV0muiKMyZzrL-B2ns');
     // setInterval(async ()=> {

@@ -1,5 +1,5 @@
 
-const { createPost, getAllPost, postLike,getAllLikes,getMentionPosts,deletePost,updatePost,getPost,getSavedPost,savePost,getPostByUserId} = require("../Controllers/PostController");
+const { createPost, getAllPost, postLike,getAllLikes,getMentionPosts,deletePost,updatePost,deleteFromCloudinary,getPost,getSavedPost,savePost,getPostByUserId} = require("../Controllers/PostController");
 const { createCommentOnPost,getCommentsById } = require("../Controllers/CommentController");
 const router = require("express").Router();
 const auth = require("../Middleware/Auth");
@@ -16,4 +16,5 @@ router.get("/getSavedPosts",auth, getSavedPost);
 router.post("/savePost",auth, savePost);
 router.post("/comment",auth, createCommentOnPost);
 router.get("/comments",auth, getCommentsById);
+router.delete("/deleteImage", deleteFromCloudinary);
 module.exports = router;

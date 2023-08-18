@@ -1,6 +1,34 @@
 const Post = require("../Models/Post");
 const mongoose = require("mongoose");
 const {passData} = require('../Utils/helper')
+var cloudinary = require('cloudinary').v2;
+
+// Change cloud name, API Key, and API Secret below
+
+cloudinary.config({
+    cloud_name: 'socialposts',
+    api_key: "169658132968456",//'',112233754916731
+    api_secret: "ay01j7l33tC4gd_K8-5AK30agDk",//'ay01j7l33tC4gd_K8-5AK30agDk'2iZyG2_uhc3QVfi2wK3qViQzmwE
+});
+
+// Change 'sample' to any public ID of your choice
+
+
+
+module.exports.deleteFromCloudinary = async (req,res) => {
+    try{
+        const {public_id} = req.body;
+        await cloudinary.uploader.destroy(public_id, function(error,data) {
+            if(data.result === 'ok'){
+                res.send({success:'',})
+            }
+        });
+
+    }
+    catch (e) {
+
+    }
+}
 const lookupForUsers = (from,localField,foreignField,as) => {
     return {$lookup:{
         from: from,
