@@ -25,15 +25,24 @@ app.use(express());
 // app.use(express.static('public'));
 const port = process.env.PORT || 8080
 mongoose.set('strictQuery', false);
-mongoose.connect(process.env.MONGO_DB_URL, {
-        useNewUrlParser: true,
-        useUnifiedTopology: true,
-    })
-    .then(() => {
-        console.log("DataBase Connected");
-    }).catch((err) => {
-        console.log("Connection Error:-",err.message);
-    });
+const connectDB = async () => {
+    try {
+        const conn = await mongoose.connect(process.env.MONGO_DB_URL);
+        console.log(`MongoDB Connected: ${conn.connection.host}`);
+    } catch (error) {
+        console.log(error);
+        process.exit(1);
+    }
+}
+// mongoose.connect(process.env.MONGO_DB_URL, {
+//         useNewUrlParser: true,
+//         useUnifiedTopology: true,
+//     })
+//     .then(() => {
+//         console.log("DataBase Connected");
+//     }).catch((err) => {
+//         console.log("Connection Error:-",err.message);
+//     });
 
 const handleSSE = (req,res) => {
     res.setHeader('Content-Type', 'text/event-stream');
@@ -52,7 +61,7 @@ const handleSSE = (req,res) => {
     });
 }
 
-let server = http.createServer(app);
+// let server = http.createServer(app);
 app.get('/stream', handleSSE)
 app.use("/api/user", UserRoutes);
 app.use("/api/request", RequestRoutes);
@@ -60,9 +69,14 @@ app.use("/api/follower", FollowersRoute);
 app.use("/api/post", PostRoutes);
 app.use("/api/admin", AdminRoutes);
 
-server.listen(port, () => {
-    console.log(`server is working on http://localhost:${port}`)
+connectDB().then(() => {
+    app.listen(port, () => {
+        console.log(`server is working on http://localhost:${port}`);
+    })
 })
+// server.listen(port, () => {
+//     console.log(`server is working on http://localhost:${port}`)
+// })
 const ably = new Ably.Realtime.Promise({key:"PbeIpA.eZ-G_A:pz_TrYgruXMbVoNloJZiCill0ek7pJpw3nV3zEnueJ4"});
 const ablyRealtimePromiseExample = async () => {
     // const ably = new Ably.Realtime.Promise('eyJ0eXAiOiJKV1QiLCJ2ZXJzaW9uIjoxLCJhbGciOiJIUzI1NiJ9.eyJqdGkiOiJmMzEyNzlkMy03OTM1LTRhYzgtOGFkMy05M2UwMDNlYjFhNWMiLCJpc3MiOiJhYmx5LmNvbSIsImlhdCI6MTY5MjI5MTA4MSwic3ViIjo0MzQ4Mn0.od30Uh34SboEs1FpmrSOvy9q4sV0muiKMyZzrL-B2ns');
