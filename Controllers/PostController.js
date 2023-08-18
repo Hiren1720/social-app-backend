@@ -99,8 +99,6 @@ module.exports.getAllPost = async (req, res) => {
     }
 };
 
-
-
 module.exports.getMentionPosts = async (req, res) => {
     try {
         let {id} = req?.params;
