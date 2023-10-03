@@ -67,7 +67,7 @@ module.exports.getFollowers = async (req, res) => {
 module.exports.unFollow = async (req, res) => {
     try {
         let {followerId,followingId,status} = req.body;
-        await User.findByIdAndUpdate({_id:followerId}, { $pull: { "following": mongoose.Types.ObjectId(followingId) } });
+        await User.findByIdAndUpdate({_id:followerId}, { $pull: { "followings": mongoose.Types.ObjectId(followingId) } });
         await User.findByIdAndUpdate({_id:followingId}, { $pull: { "followers": mongoose.Types.ObjectId(followerId) } });
         res.status(200).send({success: true, msg: status + "successfully"});
     } catch (ex) {
