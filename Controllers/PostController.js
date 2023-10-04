@@ -1,6 +1,34 @@
 const Post = require("../Models/Post");
 const mongoose = require("mongoose");
 const {passData} = require('../Utils/helper')
+var cloudinary = require('cloudinary').v2;
+
+// Change cloud name, API Key, and API Secret below
+
+cloudinary.config({
+    cloud_name: 'socialposts',
+    api_key: "169658132968456",//'',112233754916731
+    api_secret: "ay01j7l33tC4gd_K8-5AK30agDk",//'ay01j7l33tC4gd_K8-5AK30agDk'2iZyG2_uhc3QVfi2wK3qViQzmwE
+});
+
+// Change 'sample' to any public ID of your choice
+
+
+
+module.exports.deleteFromCloudinary = async (req,res) => {
+    try{
+        const {public_id} = req.body;
+        await cloudinary.uploader.destroy(public_id, function(error,data) {
+            if(data.result === 'ok'){
+                res.send({success:true,})
+            }
+        });
+
+    }
+    catch (e) {
+
+    }
+}
 const lookupForUsers = (from,localField,foreignField,as) => {
     return {$lookup:{
         from: from,
@@ -47,12 +75,17 @@ const postResponse = (post,res) => {
 }
 module.exports.createPost = async (req, res) => {
     try {
+        console.log("req.b;ody", req.body, "req.body.post", req.body?.post);
+        // let postData = JSON.parse(req.body?.post);
+        // let postData = JSON.parse(req.body);
+        // let post = new Post({...postData,imageUrl: req?.files?.length > 0 ? req?.files.map(ele => {return {type:ele.mimetype.split('/')[0],url:`/Posts/${ele?.filename}`}}):[]});
         let post = new Post(req.body);
         post.save(function (error, document) {
             if (error) {
                 res.status(400).send({success: false, msg: "Request Failed", data: error});
             } else {
                 // passData('Please Refresh and See new post ', 'post')
+                console.log("Data", document);
                 res.status(201).send({success: true, msg: "Post Created", data: document});
             }
         });
@@ -98,6 +131,8 @@ module.exports.getAllPost = async (req, res) => {
         res.status(400).send({success: false, msg: "", error: ex});
     }
 };
+
+
 
 module.exports.getMentionPosts = async (req, res) => {
     try {
@@ -171,28 +206,28 @@ module.exports.getAllLikes = async (req, res) => {
         res.status(400).send({success: false, msg: "Something went wrong!", error: ex});
     }
 };
-// module.exports.postLike = async (req, res) => {
-//     try {
-//         let data = req?.body;
-//         let post = await Post.findOne({_id: mongoose.Types.ObjectId(data?.postId)}).lean();
-//         if (post) {
-//             if (post.likes.some(objId => objId.equals(data?.likeBy))) {
-//                 let newPost = await Post.findOneAndUpdate({_id: data?.postId}, {$pull: {"likes": mongoose.Types.ObjectId(data?.likeBy)}},{new:true}).lean();
-//                 passData(newPost,'likes');
-//                 res.status(200).send({success: true, msg: "disliked", data: document});
-//             } else {
-//                 let updatedPost = await Post.findOneAndUpdate({_id: data?.postId}, {$push: {"likes": mongoose.Types.ObjectId(data?.likeBy)}},{new:true}).lean();
-//                 passData(updatedPost,'likes');
-//                 res.status(200).send({success: true, msg: "liked", data: document});
-//             }
-//         }
-//         else {
-//             res.status(400).send({success: false, msg: "Something went wrong!", data: null});
-//         }
-//     } catch (ex) {
-//         res.send(ex);
-//     }
-// };
+module.exports.postLike = async (req, res) => {
+    try {
+        let data = req?.body;
+        let post = await Post.findOne({_id: mongoose.Types.ObjectId(data?.postId)}).lean();
+        if (post) {
+            if (post.likes.some(objId => objId.equals(data?.likeBy))) {
+                let newPost = await Post.findOneAndUpdate({_id: data?.postId}, {$pull: {"likes": mongoose.Types.ObjectId(data?.likeBy)}},{new:true}).lean();
+                passData(newPost,'likes');
+                res.status(200).send({success: true, msg: "disliked", data: document});
+            } else {
+                let updatedPost = await Post.findOneAndUpdate({_id: data?.postId}, {$push: {"likes": mongoose.Types.ObjectId(data?.likeBy)}},{new:true}).lean();
+                passData(updatedPost,'likes');
+                res.status(200).send({success: true, msg: "liked", data: document});
+            }
+        }
+        else {
+            res.status(400).send({success: false, msg: "Something went wrong!", data: null});
+        }
+    } catch (ex) {
+        res.send(ex);
+    }
+};
 module.exports.postLike = async (data) => {
     try {
         let post = await Post.findOne({_id: mongoose.Types.ObjectId(data?.postId)}).lean();
