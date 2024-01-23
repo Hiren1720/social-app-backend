@@ -16,6 +16,5 @@ router.get("/getSavedPosts",auth, getSavedPost);
 router.post("/savePost",auth, savePost);
 router.post("/comment",auth, createCommentOnPost);
 router.get("/comments",auth, getCommentsById);
-// router.delete("/deleteImage", deleteFromCloudinary);
-router.post("/deleteImage",auth, deleteFromCloudinary);
+router.delete("/deleteImage", deleteFromCloudinary);
 module.exports = router;
