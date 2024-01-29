@@ -1,3 +1,4 @@
+// const {postLike} = require("./Controllers/PostController");
 const express = require("express");
 const cors = require("cors");
 const mongoose = require("mongoose");
@@ -7,8 +8,8 @@ const PostRoutes = require("./Routes/PostRoutes");
 const RequestRoutes = require("./Routes/RequestRoutes");
 const FollowersRoute = require("./Routes/FollowersRoute");
 const AdminRoutes = require("./Routes/AdminRoutes");
+const StoryRoutes = require("./Routes/StoryRoutes");
 const {connectedClients} = require('./Utils/helper');
-const {postLike} = require('./Controllers/PostController');
 const Ably = require('ably');
 const app = express();
 require("dotenv").config();
@@ -67,6 +68,8 @@ app.use("/api/user", UserRoutes);
 app.use("/api/request", RequestRoutes);
 app.use("/api/follower", FollowersRoute);
 app.use("/api/post", PostRoutes);
+
+app.use("/api/story", StoryRoutes);
 app.use("/api/admin", AdminRoutes);
 
 connectDB().then(() => {
@@ -115,5 +118,5 @@ const ablyRealtimePromiseExample = async () => {
 };
 
 // call wrapper
-ablyRealtimePromiseExample();
+// ablyRealtimePromiseExample();
 

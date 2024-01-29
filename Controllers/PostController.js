@@ -1,4 +1,5 @@
 const Post = require("../Models/Post");
+const User = require("../Models/User");
 const mongoose = require("mongoose");
 const {passData} = require('../Utils/helper')
 var cloudinary = require('cloudinary').v2;
@@ -65,9 +66,29 @@ const getPaginationObj = ({page,pageSize}) => {
         }}
 };
 
-const postResponse = (post,res) => {
+// const postResponse = (post,res) => {
+//     if(post && post.length && post[0]?.data?.length && post[0]?.total?.length){
+//         res.status(200).send({success: true, msg: "", data: post[0]?.data,total: post[0]?.total[0]?.total});
+//     }
+//     else{
+//         res.status(200).send({success: false, msg: "", data: [],total:null});
+//     }
+// }
+
+const postResponse = async (post,res) => {
     if(post && post.length && post[0]?.data?.length && post[0]?.total?.length){
-        res.status(200).send({success: true, msg: "", data: post[0]?.data,total: post[0]?.total[0]?.total});
+        let postData = post[0]?.data?.map(async (ele)=> {
+            let likedAllData =  ele?.likes?.slice(-5)?.map(async (liked)=>{
+                let user = await User.find({_id: mongoose.Types.ObjectId(liked)});
+                return  {_id:user[0]?._id, profile_url:user[0]?.profile_url, userName:user[0]?.userName}
+            })
+            return {...ele, likedData:await Promise.all(likedAllData)}
+        });
+        let posts = await Promise.all(postData);
+        // console.log("posts----", posts, "post[0]?.data====",post[0]?.data)
+        // console.log("data: post[0]?.data",post[0]?.data, "post-------likes", post[0]?.data?.likes)
+        // res.status(200).send({success: true, msg: "", data: post[0]?.data,total: post[0]?.total[0]?.total});
+        res.status(200).send({success: true, msg: "", data: posts,total: post[0]?.total[0]?.total});
     }
     else{
         res.status(200).send({success: false, msg: "", data: [],total:null});
@@ -94,7 +115,7 @@ module.exports.updatePost = async (req, res) => {
     try {
         // let data = JSON.parse(req.body?.post);
         let data = req.body;
-        console.log("Req", req.body, "data---------------", data)
+        // console.log("Req", req.body, "data---------------", data)
         let image = [];
         // if(req?.files?.length > 0){
         //      image = req?.files.map(ele => {return {type:ele.mimetype.split('/')[0],url:`/Posts/${ele?.filename}`}})
@@ -221,18 +242,22 @@ module.exports.getAllLikes = async (req, res) => {
 //         res.send(ex);
 //     }
 // };
-module.exports.postLike = async (data) => {
+module.exports.postLike = async (datas) => {
     try {
+        let data = datas?.body;
         let post = await Post.findOne({_id: mongoose.Types.ObjectId(data?.postId)}).lean();
         if (post) {
+            console.log("post", post)
             if (post.likes.some(objId => objId.equals(data?.likeBy))) {
                 let newPost = await Post.findOneAndUpdate({_id: data?.postId}, {$pull: {"likes": mongoose.Types.ObjectId(data?.likeBy)}},{new:true}).lean();
                 // passData(newPost,'likes');
+                console.log("dislike")
                 return {success: true, msg: "disliked", data: newPost}
                 // res.status(200).send({success: true, msg: "disliked", data: document});
             } else {
                 let updatedPost = await Post.findOneAndUpdate({_id: data?.postId}, {$push: {"likes": mongoose.Types.ObjectId(data?.likeBy)}},{new:true}).lean();
                 // passData(updatedPost,'likes');
+                console.log("like")
                 return {success: true, msg: "liked", data: updatedPost}
                 // res.status(200).send({success: true, msg: "liked", data: document});
             }
